@@ -69,12 +69,15 @@ ESS8[,c("SE1","SE2","SE3","SE4")]<-lapply(ESS8[,c("ipshabt", "ipsuces", "imprich
 ##reverse the scale:
 ESS8[,c("SE1","SE2","SE3","SE4")]<-lapply(ESS8[,c("SE1","SE2","SE3","SE4")],
                                                       function(x) -x+7)
-##climate change skepticism (higher value indicates higher level of skepticism)
+
+##climate change belief (higher value indicates higher level of awareness and belief in climate change)
 ESS8<-ESS8 %>%
-mutate(TrendSke=ifelse(clmchng %in% c(7,8,9), NA, clmchng),
-                       AttriSke=ifelse(ccnthum %in% c(55,66,77,88,99), NA, ccnthum),
-                       ImpactSke=ifelse(ccgdbd %in% c(66,77,88,99), NA, ccgdbd)) %>%
-  mutate(AttriSke=-(AttriSke)+6)
+  mutate(TrendBelief=ifelse(clmchng %in% c(7,8,9), NA, clmchng),
+       AttriBelief=ifelse(ccnthum %in% c(55,66,77,88,99), NA, ccnthum),
+       ImpactBelief=ifelse(ccgdbd %in% c(66,77,88,99), NA, ccgdbd)) %>%
+  mutate(TrendBelief=-(TrendBelief)+5,
+         ImpactBelief=-(ImpactBelief)+10)
+
 ##Climate change concern
 ESS8<-ESS8 %>%
   mutate(ClimateConcern=ifelse(wrclmch %in% c(6,7,8,9), NA, wrclmch))
@@ -83,9 +86,13 @@ ESS8<-ESS8 %>%
 ESS8<-ESS8 %>%
   mutate(PE1=ifelse(cflsenr %in% c(77,88,99), NA, cflsenr),
         PE2=ifelse(ccrdprs %in% c(66,77,88,99), NA, ccrdprs))
+
 ##opposition to climate change policy
-ESS8[,c("oppo1","oppo2","oppo3")]<-lapply(ESS8[,c("inctxff","sbsrnen","banhhap")],
+ESS8[,c("support1","support2","support3")]<-lapply(ESS8[,c("inctxff","sbsrnen","banhhap")],
                                            function(x) ifelse(x %in% c(7,8,9), NA, x))
+ESS8[,c("support1","support2","support3")]<-lapply(ESS8[,c("support1","support2","support3")],
+                                                   function(x) -x+6)
+
 ##Political placement & demographics:
 ESS8<-ESS8 %>%
   mutate(PoliScale=ifelse(lrscale %in% c(77,88,99), NA, lrscale),
