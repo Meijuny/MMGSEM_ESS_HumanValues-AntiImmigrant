@@ -635,7 +635,7 @@ ParameterCount<-NoOpen.MI.Config.M6 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-##Configural Model 6: Allow cross-loading SelfTran=~C4
+##Configural Model 7: Allow cross-loading SelfTran=~C4
 NoOpen.HV.Config.M7<-'
 SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
 Conser=~C1+C2+C3+C4+C5+C6+SE4
@@ -831,3 +831,49 @@ sink()
 
 ##request modification indices:
 NoOpen.MI.Metric.M4<-lavTestScore(NoOpen.HV.Metric.Fit4, epc = T)
+
+Chi2Diff.MI.M4<-NoOpen.MI.Metric.M4$uni
+Chi2Diff.MI.M4<-Chi2Diff.MI.M4 %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M4<-NoOpen.MI.Metric.M4$epc
+EPC.MI.M4<-EPC.MI.M4 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M4<-merge(EPC.MI.M4, Chi2Diff.MI.M4,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M4 %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+##(Partial) Metric Model 5: let Conser=~C1 to be freely estimated
+NoOpen.HV.Metric.M5<-'
+SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
+Conser=~C1+C2+C3+C4+C5+C6+SE4
+SelfEnhan=~SE1+SE2+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit5<-cfa(model = NoOpen.HV.Metric.M5,
+                           data = ESS8,
+                           group = "country",
+                           estimator="MLR",
+                           missing="FIML",
+                           group.equal="loadings",
+                           group.partial=c("SelfEnhan=~SE3",
+                                           "SelfEnhan=~C1",
+                                           "SelfTran=~SE3",
+                                           "Conser=~C1"),
+                           std.lv=T)
+
+sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit5.txt")
+summary(NoOpen.HV.Metric.Fit5, fit.measures=T, standardized=T)
+sink()
