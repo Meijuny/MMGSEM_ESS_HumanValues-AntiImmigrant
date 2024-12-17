@@ -884,3 +884,228 @@ NoOpen.HV.Metric.Fit5<-cfa(model = NoOpen.HV.Metric.M5,
 sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit5.txt")
 summary(NoOpen.HV.Metric.Fit5, fit.measures=T, standardized=T)
 sink()
+
+
+
+#####################################################################################
+############### Climate Change Belief - Measurement Model ###########################
+#####################################################################################
+
+##Configural invariance Model 1: perfect fit since the model is just identified
+CCBelief.Config.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+'
+
+CCBelief.Config.Fit1<-cfa(model = CCBelief.Config.M1,
+                          data = ESS8,
+                          group = "country",
+                          estimator="MLR",
+                          missing="FIML",
+                          std.lv=T)
+
+sink("./Sink Output/ESS8/CCBelief_Config_fit1.txt")
+summary(CCBelief.Config.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##(Full) Metric Model 1: 
+CCBelief.Metric.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+'
+
+CCBelief.Metric.Fit1<-cfa(model = CCBelief.Metric.M1,
+                          data = ESS8,
+                          group = "country",
+                          estimator="MLR",
+                          missing="FIML",
+                          group.equal="loadings",
+                          std.lv=T)
+
+sink("./Sink Output/ESS8/CCBelief_Metric_fit1.txt")
+summary(CCBelief.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+#####################################################################################
+############# Climate Change Policy Support - Measurement Model #####################
+#####################################################################################
+
+##Configural Invariance Model 1: perfect fit since the model is just identified
+CCPolSupport.Config.M1<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Config.Fit1<-cfa(model = CCPolSupport.Config.M1,
+                              data = ESS8,
+                              group = "country",
+                              estimator="MLR",
+                              missing="FIML",
+                              std.lv=T)
+
+sink("./Sink Output/ESS8/CCPolicySupport_Config_fit1.txt")
+summary(CCPolSupport.Config.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##(full) metric Invariance Model 1:
+CCPolSupport.Metric.M1<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Metric.Fit1<-cfa(model = CCPolSupport.Metric.M1,
+                              data = ESS8,
+                              group = "country",
+                              estimator="MLR",
+                              missing="FIML",
+                              group.equal="loadings",
+                              std.lv=T)
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1.txt")
+summary(CCPolSupport.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##request modification indices:
+CCPolSupport.MI.Metric.M1<-lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
+
+Chi2Diff.MI.M1<-CCPolSupport.MI.Metric.M1$uni
+Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1<-CCPolSupport.MI.Metric.M1$epc
+EPC.MI.M1<-EPC.MI.M1 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1<-merge(EPC.MI.M1, Chi2Diff.MI.M1,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+CCPolSupport.Metric.M2<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Metric.Fit2<-cfa(model = CCPolSupport.Metric.M2,
+                              data = ESS8,
+                              group = "country",
+                              estimator="MLR",
+                              missing="FIML",
+                              group.equal="loadings",
+                              group.partial=c("CCPolicySupport=~support3"),
+                              std.lv=T)
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2.txt")
+summary(CCPolSupport.Metric.Fit2, fit.measures=T, standardized=T)
+sink()
+
+#####################################################################################
+################### Personal Efficacy - Measurement Model ###########################
+#####################################################################################
+
+##Configural model is under-identified --> directly go for full metric invariance model
+
+##(full) metric model 1:
+PE.Metric.M1<-'
+PEfficacy=~PE1+PE2
+'
+
+PE.Metric.Fit1<-cfa(model = PE.Metric.M1,
+                    data = ESS8,
+                    group = "country",
+                    estimator="MLR",
+                    missing="FIML",
+                    group.equal="loadings",
+                    std.lv=T)
+
+sink("./Sink Output/ESS8/PersonalEfficacy_Metric_fit1.txt")
+summary(PE.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+fitMeasures(PE.Metric.Fit1)
+#Error in if (!is.finite(X2) || !is.finite(df) || !is.finite(X2.null) ||  : 
+#             missing value where TRUE/FALSE needed
+#             In addition: Warning message:
+#               lavaan->lav_fit_cfi_lavobject():  
+#               computation of robust CFI resulted in NA values.
+
+param<-parameterestimates(PE.Metric.Fit1)
+std_param<-standardizedSolution(PE.Metric.Fit1)
+
+##Configural model with climate change belief and climate change efficacy together
+PE.CCBelief.Config.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+'
+
+PE.CCBelief.Config.Fit1<-cfa(model = PE.CCBelief.Config.M1,
+                             data = ESS8,
+                             group = "country",
+                             estimator="MLR",
+                             missing="FIML",
+                             std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Config_fit1.txt")
+summary(PE.CCBelief.Config.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##Full Metric model with climate change belief and climate change efficacy together:
+PE.CCBelief.Metric.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+'
+
+PE.CCBelief.Metric.Fit1<-cfa(model = PE.CCBelief.Metric.M1,
+                             data = ESS8,
+                             group = "country",
+                             estimator="MLR",
+                             missing="FIML",
+                             group.equal="loadings",
+                             std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Metric_fit1.txt")
+summary(PE.CCBelief.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##request modification indices:
+PE.CCBelief.MI.Metric.M1<-lavTestScore(PE.CCBelief.Metric.Fit1, epc = T)
+
+Chi2Diff.MI.M1<-PE.CCBelief.MI.Metric.M1$uni
+Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1<-PE.CCBelief.MI.Metric.M1$epc
+EPC.MI.M1<-EPC.MI.M1 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1<-merge(EPC.MI.M1, Chi2Diff.MI.M1,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+
+
+##Partial Metric model with climate change belief and climate change efficacy together:
+##Let CCPolicySupport=~support2 to be freely estimated
+PE.CCBelief.Metric.M2<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+'
+
+PE.CCBelief.Metric.Fit2<-cfa(model = PE.CCBelief.Metric.M2,
+                             data = ESS8,
+                             group = "country",
+                             estimator="MLR",
+                             missing="FIML",
+                             group.equal="loadings",
+                             group.partial=c("CCPolicySupport=~support2"),
+                             std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Metric_fit2.txt")
+summary(PE.CCBelief.Metric.Fit2, fit.measures=T, standardized=T)
+sink()
