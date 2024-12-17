@@ -76,7 +76,14 @@ ESS8<-ESS8 %>%
        AttriBelief=ifelse(ccnthum %in% c(55,66,77,88,99), NA, ccnthum),
        ImpactBelief=ifelse(ccgdbd %in% c(66,77,88,99), NA, ccgdbd)) %>%
   mutate(TrendBelief=-(TrendBelief)+5,
-         ImpactBelief=-(ImpactBelief)+10)
+         ImpactBelief=-(ImpactBelief)+10) %>%
+  mutate(ImpactBelief2=case_when(
+    ImpactBelief<=2 ~ 1,
+    ImpactBelief>=3 & ImpactBelief <=4 ~ 2,
+    ImpactBelief>=5 & ImpactBelief <=6 ~ 3,
+    ImpactBelief>=7 & ImpactBelief <=8 ~ 4,
+    ImpactBelief>=9 & ImpactBelief <=10 ~ 5
+  ))
 
 ##Climate change concern
 ESS8<-ESS8 %>%
@@ -924,6 +931,23 @@ sink("./Sink Output/ESS8/CCBelief_Metric_fit1.txt")
 summary(CCBelief.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
+##Test with the shriken scale of Impact Belief:
+TESTCCBelief.Metric.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief2
+'
+
+TESTCCBelief.Metric.Fit1<-cfa(model = TESTCCBelief.Metric.M1,
+                          data = ESS8,
+                          group = "country",
+                          estimator="MLR",
+                          missing="FIML",
+                          group.equal="loadings",
+                          std.lv=T)
+
+sink("./Sink Output/ESS8/TESTCCBelief_Metric_fit1.txt")
+summary(TESTCCBelief.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
 #####################################################################################
 ############# Climate Change Policy Support - Measurement Model #####################
 #####################################################################################
@@ -1089,9 +1113,7 @@ EPC.Chi2Diff.M1<-merge(EPC.MI.M1, Chi2Diff.MI.M1,
                        by.y = "plabel")
 
 
-
-##Partial Metric model with climate change belief and climate change efficacy together:
-##Let CCPolicySupport=~support2 to be freely estimated
+##(partial) Metric model with climate change belief and climate change efficacy together:
 PE.CCBelief.Metric.M2<-'
 CCBelief=~TrendBelief+AttriBelief+ImpactBelief
 PEfficacy=~PE1+PE2
@@ -1103,9 +1125,191 @@ PE.CCBelief.Metric.Fit2<-cfa(model = PE.CCBelief.Metric.M2,
                              estimator="MLR",
                              missing="FIML",
                              group.equal="loadings",
-                             group.partial=c("CCPolicySupport=~support2"),
+                             group.partial=c("CCBelief=~ImpactBelief"),
                              std.lv=T)
 
 sink("./Sink Output/ESS8/PE_CCBelief_Metric_fit2.txt")
 summary(PE.CCBelief.Metric.Fit2, fit.measures=T, standardized=T)
 sink()
+
+
+
+
+##Configural model with climate change belief and climate change efficacy and climate change worries together
+PE.CCBelief.Concern.Config.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+CCWorry=~ClimateConcern
+'
+
+PE.CCBelief.Concern.Config.Fit1<-cfa(model = PE.CCBelief.Concern.Config.M1,
+                             data = ESS8,
+                             group = "country",
+                             estimator="MLR",
+                             missing="FIML",
+                             std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Concern_Config_fit1.txt")
+summary(PE.CCBelief.Concern.Config.Fit1, fit.measures=T, standardized=T)
+sink()
+
+
+##(full) metric model with climate change belief and climate change efficacy and climate change worries together
+PE.CCBelief.Concern.Metric.M1<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+CCWorry=~ClimateConcern
+'
+
+PE.CCBelief.Concern.Metric.Fit1<-cfa(model = PE.CCBelief.Concern.Metric.M1,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings",
+                                     std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Concern_Metric_fit1.txt")
+summary(PE.CCBelief.Concern.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+##request modification indices:
+PE.CCBelief.Concern.MI.Metric.M1<-lavTestScore(PE.CCBelief.Concern.Metric.Fit1, epc = T)
+
+Chi2Diff.MI.M1<-PE.CCBelief.Concern.MI.Metric.M1$uni
+Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1<-PE.CCBelief.Concern.MI.Metric.M1$epc
+EPC.MI.M1<-EPC.MI.M1 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1<-merge(EPC.MI.M1, Chi2Diff.MI.M1,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+
+##(Partial) metric model with climate change belief and climate change efficacy and climate change worries together
+##allow CCBelief=~ImpactBelief to be freely estiamted:
+PE.CCBelief.Concern.Metric.M2<-'
+CCBelief=~TrendBelief+AttriBelief+ImpactBelief
+PEfficacy=~PE1+PE2
+CCWorry=~ClimateConcern
+'
+
+PE.CCBelief.Concern.Metric.Fit2<-cfa(model = PE.CCBelief.Concern.Metric.M2,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings",
+                                     group.partial=c("CCBelief=~ImpactBelief"),
+                                     std.lv=T)
+
+sink("./Sink Output/ESS8/PE_CCBelief_Concern_Metric_fit2.txt")
+summary(PE.CCBelief.Concern.Metric.Fit2, fit.measures=T, standardized=T)
+sink()
+
+
+
+#####################################################################################
+######### Regular MGSEM with only HV (no Openness) & Climate Change Belief ##########
+#####################################################################################
+
+##Specify the model:
+BasicModel.HV.CCBelief<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+##Structural Model:
+CCBelief~SelfTran+Conser+SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCBelief<-cfa(model = BasicModel.HV.CCBelief,
+                                   data = ESS8,
+                                   group = "country",
+                                   estimator="MLR",
+                                   missing="FIML",
+                                   group.equal="loadings",
+                                   group.partial=c("SelfEnhan=~SE3",
+                                                   "SelfEnhan=~C1",
+                                                   "SelfTran=~SE3",
+                                                   "Conser=~C1"))
+
+
+
+#####################################################################################
+############# MMGSEM with only HV (no Openness) & Climate Change Belief #############
+#####################################################################################
+
+##First, take all the necessary measurement models and change to marker variable approach:
+#
+##Human Values without Openness to Change
+#
+NoOpen.HV.Metric.M5.marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit5.marker<-cfa(model = NoOpen.HV.Metric.M5.marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3",
+                                                  "SelfEnhan=~C1",
+                                                  "SelfTran=~SE3",
+                                                  "Conser=~C1"))
+
+#sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit5_marker.txt")
+#summary(NoOpen.HV.Metric.Fit5.marker, fit.measures=T, standardized=T)
+#sink()
+#
+##Climate Change Belief
+#
+CCBelief.Metric.M1.Marker<-'
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
+                          data = ESS8,
+                          group = "country",
+                          estimator="MLR",
+                          missing="FIML",
+                          group.equal="loadings")
+
+#sink("./Sink Output/ESS8/CCBelief_Metric_fit1_marker.txt")
+#summary(CCBelief.Metric.Fit1.Marker, fit.measures=T, standardized=T)
+#sink()
+#
+##Climate Change Belief 2
+CCBelief.Metric.M1.Marker2<-'
+CCBelief=~ImpactBelief2+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker2<-cfa(model = CCBelief.Metric.M1.Marker2,
+                                 data = ESS8,
+                                 group = "country",
+                                 estimator="MLR",
+                                 missing="FIML",
+                                 group.equal="loadings")
+
+#sink("./Sink Output/ESS8/CCBelief_Metric_fit1_marker2.txt")
+#summary(CCBelief.Metric.Fit1.Marker2, fit.measures=T, standardized=T)
+#sink()
