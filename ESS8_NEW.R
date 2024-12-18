@@ -2,7 +2,9 @@ library(dplyr)
 library(lavaan)
 library(tidyr)
 library(ggplot2)
+library(plotly)
 library(mmgsem)
+
 
 #library(devtools)
 #library(usethis)
@@ -1215,7 +1217,7 @@ sink()
 
 
 #####################################################################################
-######### Regular MGSEM with only HV (no Openness) & Climate Change Belief ##########
+################## Regular MGSEM with plot options ##################################
 #####################################################################################
 
 ##Specify the model:
@@ -1247,10 +1249,59 @@ RegSEM.BasicModel.HV.CCBelief<-cfa(model = BasicModel.HV.CCBelief,
                                                    "SelfTran=~SE3",
                                                    "Conser=~C1"))
 
+##extract the parameter estimate
+param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
+
+##--------------------------------------------------------------------------------------
+##Faceted Dot Plot
+reg_param<-param %>%
+  filter(op == "~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(RegSEM.BasicModel.HV.CCBelief, "group.label"))
+
+reg_param<-merge(reg_param, countries,
+                 by.x = "group", by.y = "group")
+
+ggplot(reg_param, aes(x=est, y=country, color=Human.Values))+
+  geom_point(size=3)+
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  labs(title = "Simultaneous MGSEM - Human Values on Climate Change Belief")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##--------------------------------------------------------------------------------------
+##3D scatterplot
+reg_param<-param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(RegSEM.BasicModel.HV.CCBelief, "group.label"))
+
+reg_param<-merge(reg_param, countries,
+                 by.x = "group", by.y = "group")
+
+plot_ly(reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country,
+        type = "scatter3d", mode="markers+text") %>%
+  layout(title="Simultaneous MGSEM - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
 
 
 #####################################################################################
-############# MMGSEM with only HV (no Openness) & Climate Change Belief #############
+############################# Basic Model: MMGSEM  ##################################
 #####################################################################################
 
 ##First, take all the necessary measurement models and change to marker variable approach:
@@ -1313,3 +1364,248 @@ CCBelief.Metric.Fit1.Marker2<-cfa(model = CCBelief.Metric.M1.Marker2,
 #sink("./Sink Output/ESS8/CCBelief_Metric_fit1_marker2.txt")
 #summary(CCBelief.Metric.Fit1.Marker2, fit.measures=T, standardized=T)
 #sink()
+
+##listwise deletion:
+ESS8_lw<-na.omit(ESS8)
+
+##Structural model
+Str_model<-'
+CCBelief~SelfTran+Conser+SelfEnhan
+'
+
+##Model selection 
+BasicModel.Selection<-ModelSelection(dat=ESS8_lw,
+                                     S1 = list(NoOpen.HV.Metric.M5.marker, CCBelief.Metric.M1.Marker),
+                                     S2 = Str_model,
+                                     group = "country",
+                                     clusters=c(1,8),
+                                     seed = 100,
+                                     userStart = NULL,
+                                     s1_fit = list(NoOpen.HV.Metric.Fit5.marker, CCBelief.Metric.Fit1.Marker),
+                                     max_it = 10000L,
+                                     nstarts = 50L,
+                                     printing = FALSE,
+                                     partition = "hard",
+                                     endogenous_cov = TRUE,
+                                     endo_group_specific = TRUE,
+                                     sam_method = "local",
+                                     meanstr = FALSE,
+                                     rescaling = F)
+#
+##plot for CHull:Questions, why there is no CHull scree ratio for 5 clusters
+ggplot(BasicModel.Selection$Overview, aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+#
+##plot for BIC_G observed
+ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Observed")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+#
+##plot for BIC_G factor
+ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Factor")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+
+
+##MMGSEM - 2 cluster
+BasicModel.2clus<-MMGSEM(dat=ESS8_lw,
+                         S1 = list(NoOpen.HV.Metric.M5.marker, CCBelief.Metric.M1.Marker),
+                         S2 = Str_model,
+                         group = "country",
+                         nclus=2,
+                         seed = 100,
+                         userStart = NULL,
+                         s1_fit = list(NoOpen.HV.Metric.Fit5.marker, CCBelief.Metric.Fit1.Marker),
+                         max_it = 10000L,
+                         nstarts = 50L,
+                         printing = FALSE,
+                         partition = "hard",
+                         endogenous_cov = TRUE,
+                         endo_group_specific = TRUE,
+                         sam_method = "local",
+                         meanstr = FALSE,
+                         rescaling = F)
+#
+##MMGSEM-6 cluster
+BasicModel.6clus<-MMGSEM(dat=ESS8_lw,
+                         S1 = list(NoOpen.HV.Metric.M5.marker, CCBelief.Metric.M1.Marker),
+                         S2 = Str_model,
+                         group = "country",
+                         nclus=6,
+                         seed = 100,
+                         userStart = NULL,
+                         s1_fit = list(NoOpen.HV.Metric.Fit5.marker, CCBelief.Metric.Fit1.Marker),
+                         max_it = 10000L,
+                         nstarts = 50L,
+                         printing = FALSE,
+                         partition = "hard",
+                         endogenous_cov = TRUE,
+                         endo_group_specific = TRUE,
+                         sam_method = "local",
+                         meanstr = FALSE,
+                         rescaling = F)
+
+
+##Clustering membership
+#
+#2-cluster solution
+clustering.2clus<-t(apply(BasicModel.2clus$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.2clus[,2]<-ifelse(clustering.2clus[,2]==1,2,0)
+ClusMembership.2clus<-apply(clustering.2clus,1,function(x) sum(x))
+ClusterRes.2clus<-data.frame(group=c(1:23),
+                       ClusMembership=ClusMembership.2clus)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit5.marker, "group.label"))
+
+ClusterRes.2clus<-merge(ClusterRes.2clus, countries,
+                        by.x = "group", by.y = "group")
+
+#
+#6-cluster solution
+clustering.6clus<-t(apply(BasicModel.6clus$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus[,2]<-ifelse(clustering.6clus[,2]==1,2,0)
+clustering.6clus[,3]<-ifelse(clustering.6clus[,3]==1,3,0)
+clustering.6clus[,4]<-ifelse(clustering.6clus[,4]==1,4,0)
+clustering.6clus[,5]<-ifelse(clustering.6clus[,5]==1,5,0)
+clustering.6clus[,6]<-ifelse(clustering.6clus[,6]==1,6,0)
+ClusMembership.6clus<-apply(clustering.6clus,1,function(x) sum(x))
+ClusterRes.6clus<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.6clus)
+
+
+#####################################################################################
+################### Basic Model: SAM estimation and comparison ######################
+#####################################################################################
+
+##First do the following step that is necessary for both 2-cluster and 6-cluster solution
+#
+##extract the loadings and residual variances from HV 
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit5.marker, what = "est")
+lambda_HV_23cntry<-lapply(EST_HV, "[[", "lambda")
+theta_HV_23cntry<-lapply(EST_HV, "[[", "theta")
+#
+##extract the loadings and residual variances from CCBelief
+EST_CCBelief<-lavInspect(CCBelief.Metric.Fit1.Marker, what = "est")
+lambda_CCBelief_23cntry<-lapply(EST_CCBelief, "[[","lambda")
+theta_CCBelief_23cntry<-lapply(EST_CCBelief, "[[","theta")
+#
+##initialize empty list to store the new lambda matrix, new theta matrix and the mapping matrix
+lambda_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+theta_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+Mmatrix<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))){
+  ##put lambda from two measurement blocks into into the same matrix for each group
+  lambda_23cntry[[g]]<-lav_matrix_bdiag(lambda_HV_23cntry[[g]], lambda_CCBelief_23cntry[[g]])
+  colnames(lambda_23cntry[[g]])<-c(colnames(lambda_HV_23cntry[[g]]), colnames(lambda_CCBelief_23cntry[[g]]))
+  rownames(lambda_23cntry[[g]])<-c(rownames(lambda_HV_23cntry[[g]]), rownames(lambda_CCBelief_23cntry[[g]]))
+  
+  ##put theta from two measurement blocks into the same matrix for each group
+  theta_23cntry[[g]]<-lav_matrix_bdiag(theta_HV_23cntry[[g]],theta_CCBelief_23cntry[[g]])
+  colnames(theta_23cntry[[g]])<-c(colnames(theta_HV_23cntry[[g]]), colnames(theta_CCBelief_23cntry[[g]]))
+  rownames(theta_23cntry[[g]])<-c(rownames(theta_HV_23cntry[[g]]), rownames(theta_CCBelief_23cntry[[g]]))
+  
+  ##compute the mapping matrix for each group
+  Mmatrix[[g]]<-solve(t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]]) %*% lambda_23cntry[[g]]) %*% t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]])
+}
+#
+##run an empty sem to just extract the imputed sample covariance matrix
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS8,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F)
+
+S<-fake@SampleStats@cov
+
+S<-lapply(S, function(x) {
+  colnames(x)<-rownames(x)<-colnames(fitted(fake)[[19]]$cov)
+  x
+})
+
+#
+##compute the factor covariance matrix for each group that will be used for the second step:
+Var_eta<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))) {
+  Var_eta[[g]]<-Mmatrix[[g]] %*% (S[[g]]-theta_23cntry[[g]]) %*% t(Mmatrix[[g]])
+}
+
+Var_eta
+
+##In order to map the cluster solution, we also need to do a free SAM:
+FREEsam_str_model<-'
+CCBelief~SelfTran+Conser+SelfEnhan
+'
+
+BasicModel.FreeSAM<-cfa(model = FREEsam_str_model,
+                    sample.cov = Var_eta,
+                    sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_FreeSAM.txt")
+summary(BasicModel.FreeSAM, fit.measures=T, standardized=T)
+sink()
+
+
+
+###Once we have the factor covariance matrix from step 1
+##We can estimate the structural parameter for different cluster solution from now on:
+##
+##
+##2-cluster: only group 1, 16, 19 are in cluster 1, the rest are in cluster 2
+sam_str_model<-'
+CCBelief~c(a1,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a1,a2,a2,a1,a2,a2,a2,a2)*SelfTran+
+          c(b1,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b1,b2,b2,b1,b2,b2,b2,b2)*Conser+
+          c(c1,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c1,c2,c2,c1,c2,c2,c2,c2)*SelfEnhan
+'
+
+BasicModel.SAM<-cfa(model = sam_str_model,
+                    sample.cov = Var_eta,
+                    sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_SAM.txt")
+summary(BasicModel.SAM, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.2clus, 
+                         by.x = "group", by.y = "group")
+  
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Belief")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
