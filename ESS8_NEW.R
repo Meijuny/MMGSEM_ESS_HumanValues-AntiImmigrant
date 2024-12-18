@@ -1249,6 +1249,10 @@ RegSEM.BasicModel.HV.CCBelief<-cfa(model = BasicModel.HV.CCBelief,
                                                    "SelfTran=~SE3",
                                                    "Conser=~C1"))
 
+sink("./Sink Output/ESS8/BasicModel_FreeSEM.txt")
+summary(RegSEM.BasicModel.HV.CCBelief, fit.measures=T, standardized=T)
+sink()
+
 ##extract the parameter estimate
 param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
 
@@ -1549,9 +1553,7 @@ for (g in 1:length(unique(ESS8$country))) {
   Var_eta[[g]]<-Mmatrix[[g]] %*% (S[[g]]-theta_23cntry[[g]]) %*% t(Mmatrix[[g]])
 }
 
-Var_eta
-
-##In order to map the cluster solution, we also need to do a free SAM:
+##In order to map the cluster solution, we also need to do a free SAM for all sorts of clustering solution:
 FREEsam_str_model<-'
 CCBelief~SelfTran+Conser+SelfEnhan
 '
@@ -1569,7 +1571,7 @@ sink()
 ###Once we have the factor covariance matrix from step 1
 ##We can estimate the structural parameter for different cluster solution from now on:
 ##
-##
+##-------------------------------------------------------------------------------------------------------
 ##2-cluster: only group 1, 16, 19 are in cluster 1, the rest are in cluster 2
 sam_str_model<-'
 CCBelief~c(a1,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a1,a2,a2,a1,a2,a2,a2,a2)*SelfTran+
@@ -1609,3 +1611,79 @@ ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
   xlab("regression coefficients")+ylab("country")+
   theme_bw()
 
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.2clus, 
+                         by.x = "group", by.y = "group")
+
+plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+        type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+#####################################################################################
+############## Basic Model: Simultaneously MGSEM estimation and comparison ##########
+#####################################################################################
+
+##Specify the model:
+BasicModel.HV.CCBelief<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+##Structural Model:
+CCBelief~SelfTran+Conser+SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCBelief<-cfa(model = BasicModel.HV.CCBelief,
+                                   data = ESS8,
+                                   group = "country",
+                                   estimator="MLR",
+                                   missing="FIML",
+                                   group.equal="loadings",
+                                   group.partial=c("SelfEnhan=~SE3",
+                                                   "SelfEnhan=~C1",
+                                                   "SelfTran=~SE3",
+                                                   "Conser=~C1"))
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.2clus, 
+                         by.x = "group", by.y = "group")
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Belief")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
