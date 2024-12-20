@@ -743,29 +743,6 @@ sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit2.txt")
 summary(NoOpen.HV.Metric.Fit2, fit.measures=T, standardized=T)
 sink()
 
-##request modification indices:
-NoOpen.MI.Metric.M2<-lavTestScore(NoOpen.HV.Metric.Fit2, epc = T)
-
-Chi2Diff.MI.M2<-NoOpen.MI.Metric.M2$uni
-Chi2Diff.MI.M2<-Chi2Diff.MI.M2 %>%
-  select(rhs, X2) %>%
-  rename(plabel=rhs) %>%
-  mutate(X2=round(X2, digits = 3))
-
-EPC.MI.M2<-NoOpen.MI.Metric.M2$epc
-EPC.MI.M2<-EPC.MI.M2 %>%
-  mutate(parameter=paste(lhs, op, rhs, sep = ""))
-
-EPC.Chi2Diff.M2<-merge(EPC.MI.M2, Chi2Diff.MI.M2,
-                       by.x = "plabel",
-                       by.y = "plabel")
-
-EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M2 %>%
-  filter(X2 >= 10) %>%
-  group_by(parameter) %>%
-  summarise(count=n()) %>%
-  arrange(desc(count))
-
 #####################################################################################
 ############### Climate Change Belief - Measurement Model ###########################
 #####################################################################################
@@ -1214,15 +1191,15 @@ CCBelief~SelfTran+Conser+SelfEnhan
 
 ##Model selection 
 BasicModel.Selection<-ModelSelection(dat=ESS8_lw,
-                                     S1 = list(NoOpen.HV.Metric.M5.marker, CCBelief.Metric.M1.Marker),
+                                     S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
                                      S2 = Str_model,
                                      group = "country",
                                      clusters=c(1,8),
                                      seed = 100,
                                      userStart = NULL,
-                                     s1_fit = list(NoOpen.HV.Metric.Fit5.marker, CCBelief.Metric.Fit1.Marker),
+                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                                      max_it = 10000L,
-                                     nstarts = 50L,
+                                     nstarts = 70L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -1231,11 +1208,19 @@ BasicModel.Selection<-ModelSelection(dat=ESS8_lw,
                                      meanstr = FALSE,
                                      rescaling = F)
 #
-##plot for CHull:Questions, why there is no CHull scree ratio for 5 clusters
+View(BasicModel.Selection$Overview)
+##plot for CHull observed
 ggplot(BasicModel.Selection$Overview, aes(x=nrpar, y=LL)) +
   geom_point()+
   geom_line()+
-  labs(title = "CHUll")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  labs(title = "CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+#
+##plot for CHull factor
+ggplot(BasicModel.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll factor")+xlab("number of parameters")+ylab("Log-Likelihood")+
   theme_minimal()
 #
 ##plot for BIC_G observed
