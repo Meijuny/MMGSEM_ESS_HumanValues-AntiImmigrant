@@ -79,13 +79,7 @@ ESS8<-ESS8 %>%
        ImpactBelief=ifelse(ccgdbd %in% c(66,77,88,99), NA, ccgdbd)) %>%
   mutate(TrendBelief=-(TrendBelief)+5,
          ImpactBelief=-(ImpactBelief)+10) %>%
-  mutate(ImpactBelief2=case_when(
-    ImpactBelief<=2 ~ 1,
-    ImpactBelief>=3 & ImpactBelief <=4 ~ 2,
-    ImpactBelief>=5 & ImpactBelief <=6 ~ 3,
-    ImpactBelief>=7 & ImpactBelief <=8 ~ 4,
-    ImpactBelief>=9 & ImpactBelief <=10 ~ 5
-  ))
+  mutate(ImpactBelief=ImpactBelief/2)
 
 ##Climate change concern
 ESS8<-ESS8 %>%
@@ -182,7 +176,7 @@ summary(Conser.Config.Fit1, fit.measures=T, standardized=T)
 sink()
 
 #####################################################################################
-################## HV full measurement model with 4 values ##########################
+################## DUMP IT! HV full measurement model with 4 values #################
 #####################################################################################
 
 ##Configural Model 1:
@@ -772,130 +766,6 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M2 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-##(Partial) Metric Model 3: let SelfEnhan=~C1 to be freely estimated
-NoOpen.HV.Metric.M3<-'
-SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
-Conser=~C1+C2+C3+C4+C5+C6+SE4
-SelfEnhan=~SE1+SE2+SE3+SE4+C1
-
-##Add Error Term Correlation
-C5~~C6
-'
-
-NoOpen.HV.Metric.Fit3<-cfa(model = NoOpen.HV.Metric.M3,
-                           data = ESS8,
-                           group = "country",
-                           estimator="MLR",
-                           missing="FIML",
-                           group.equal="loadings",
-                           group.partial=c("SelfEnhan=~SE3",
-                                           "SelfEnhan=~C1"),
-                           std.lv=T)
-
-sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit3.txt")
-summary(NoOpen.HV.Metric.Fit3, fit.measures=T, standardized=T)
-sink()
-
-##request modification indices:
-NoOpen.MI.Metric.M3<-lavTestScore(NoOpen.HV.Metric.Fit3, epc = T)
-
-Chi2Diff.MI.M3<-NoOpen.MI.Metric.M3$uni
-Chi2Diff.MI.M3<-Chi2Diff.MI.M3 %>%
-  select(rhs, X2) %>%
-  rename(plabel=rhs) %>%
-  mutate(X2=round(X2, digits = 3))
-
-EPC.MI.M3<-NoOpen.MI.Metric.M3$epc
-EPC.MI.M3<-EPC.MI.M3 %>%
-  mutate(parameter=paste(lhs, op, rhs, sep = ""))
-
-EPC.Chi2Diff.M3<-merge(EPC.MI.M3, Chi2Diff.MI.M3,
-                       by.x = "plabel",
-                       by.y = "plabel")
-
-EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M3 %>%
-  filter(X2 >= 10) %>%
-  group_by(parameter) %>%
-  summarise(count=n()) %>%
-  arrange(desc(count))
-
-
-##(Partial) Metric Model 4: let SelfTran=~SE3 to be freely estimated
-NoOpen.HV.Metric.M4<-'
-SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
-Conser=~C1+C2+C3+C4+C5+C6+SE4
-SelfEnhan=~SE1+SE2+SE3+SE4+C1
-
-##Add Error Term Correlation
-C5~~C6
-'
-
-NoOpen.HV.Metric.Fit4<-cfa(model = NoOpen.HV.Metric.M4,
-                           data = ESS8,
-                           group = "country",
-                           estimator="MLR",
-                           missing="FIML",
-                           group.equal="loadings",
-                           group.partial=c("SelfEnhan=~SE3",
-                                           "SelfEnhan=~C1",
-                                           "SelfTran=~SE3"),
-                           std.lv=T)
-
-sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit4.txt")
-summary(NoOpen.HV.Metric.Fit4, fit.measures=T, standardized=T)
-sink()
-
-##request modification indices:
-NoOpen.MI.Metric.M4<-lavTestScore(NoOpen.HV.Metric.Fit4, epc = T)
-
-Chi2Diff.MI.M4<-NoOpen.MI.Metric.M4$uni
-Chi2Diff.MI.M4<-Chi2Diff.MI.M4 %>%
-  select(rhs, X2) %>%
-  rename(plabel=rhs) %>%
-  mutate(X2=round(X2, digits = 3))
-
-EPC.MI.M4<-NoOpen.MI.Metric.M4$epc
-EPC.MI.M4<-EPC.MI.M4 %>%
-  mutate(parameter=paste(lhs, op, rhs, sep = ""))
-
-EPC.Chi2Diff.M4<-merge(EPC.MI.M4, Chi2Diff.MI.M4,
-                       by.x = "plabel",
-                       by.y = "plabel")
-
-EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M4 %>%
-  filter(X2 >= 10) %>%
-  group_by(parameter) %>%
-  summarise(count=n()) %>%
-  arrange(desc(count))
-
-##(Partial) Metric Model 5: let Conser=~C1 to be freely estimated
-NoOpen.HV.Metric.M5<-'
-SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
-Conser=~C1+C2+C3+C4+C5+C6+SE4
-SelfEnhan=~SE1+SE2+SE3+SE4+C1
-
-##Add Error Term Correlation
-C5~~C6
-'
-
-NoOpen.HV.Metric.Fit5<-cfa(model = NoOpen.HV.Metric.M5,
-                           data = ESS8,
-                           group = "country",
-                           estimator="MLR",
-                           missing="FIML",
-                           group.equal="loadings",
-                           group.partial=c("SelfEnhan=~SE3",
-                                           "SelfEnhan=~C1",
-                                           "SelfTran=~SE3",
-                                           "Conser=~C1"),
-                           std.lv=T)
-
-sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit5.txt")
-summary(NoOpen.HV.Metric.Fit5, fit.measures=T, standardized=T)
-sink()
-
-
-
 #####################################################################################
 ############### Climate Change Belief - Measurement Model ###########################
 #####################################################################################
@@ -931,23 +801,6 @@ CCBelief.Metric.Fit1<-cfa(model = CCBelief.Metric.M1,
 
 sink("./Sink Output/ESS8/CCBelief_Metric_fit1.txt")
 summary(CCBelief.Metric.Fit1, fit.measures=T, standardized=T)
-sink()
-
-##Test with the shriken scale of Impact Belief:
-TESTCCBelief.Metric.M1<-'
-CCBelief=~TrendBelief+AttriBelief+ImpactBelief2
-'
-
-TESTCCBelief.Metric.Fit1<-cfa(model = TESTCCBelief.Metric.M1,
-                          data = ESS8,
-                          group = "country",
-                          estimator="MLR",
-                          missing="FIML",
-                          group.equal="loadings",
-                          std.lv=T)
-
-sink("./Sink Output/ESS8/TESTCCBelief_Metric_fit1.txt")
-summary(TESTCCBelief.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
 #####################################################################################
@@ -1312,7 +1165,7 @@ plot_ly(reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country,
 #
 ##Human Values without Openness to Change
 #
-NoOpen.HV.Metric.M5.marker<-'
+NoOpen.HV.Metric.M2.Marker<-'
 SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
 Conser=~C2+C1+C3+C4+C5+C6+SE4
 SelfEnhan=~SE2+SE1+SE3+SE4+C1
@@ -1321,20 +1174,18 @@ SelfEnhan=~SE2+SE1+SE3+SE4+C1
 C5~~C6
 '
 
-NoOpen.HV.Metric.Fit5.marker<-cfa(model = NoOpen.HV.Metric.M5.marker,
-                                  data = ESS8,
-                                  group = "country",
-                                  estimator="MLR",
-                                  missing="FIML",
-                                  group.equal="loadings",
-                                  group.partial=c("SelfEnhan=~SE3",
-                                                  "SelfEnhan=~C1",
-                                                  "SelfTran=~SE3",
-                                                  "Conser=~C1"))
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                           data = ESS8,
+                           group = "country",
+                           estimator="MLR",
+                           missing="FIML",
+                           group.equal="loadings",
+                           group.partial=c("SelfEnhan=~SE3"))
 
-#sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit5_marker.txt")
-#summary(NoOpen.HV.Metric.Fit5.marker, fit.measures=T, standardized=T)
+#sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit2_Marker.txt")
+#summary(NoOpen.HV.Metric.Fit2.Marker, fit.measures=T, standardized=T)
 #sink()
+
 #
 ##Climate Change Belief
 #
@@ -1351,22 +1202,6 @@ CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
 
 #sink("./Sink Output/ESS8/CCBelief_Metric_fit1_marker.txt")
 #summary(CCBelief.Metric.Fit1.Marker, fit.measures=T, standardized=T)
-#sink()
-#
-##Climate Change Belief 2
-CCBelief.Metric.M1.Marker2<-'
-CCBelief=~ImpactBelief2+TrendBelief+AttriBelief
-'
-
-CCBelief.Metric.Fit1.Marker2<-cfa(model = CCBelief.Metric.M1.Marker2,
-                                 data = ESS8,
-                                 group = "country",
-                                 estimator="MLR",
-                                 missing="FIML",
-                                 group.equal="loadings")
-
-#sink("./Sink Output/ESS8/CCBelief_Metric_fit1_marker2.txt")
-#summary(CCBelief.Metric.Fit1.Marker2, fit.measures=T, standardized=T)
 #sink()
 
 ##listwise deletion:
@@ -1687,3 +1522,36 @@ ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
 
 
 ##MGSEM with constrains within clusters:
+BasicModel.HV.CCBelief.2Clus<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+##Structural Model:
+CCBelief~c(a1,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a1,a2,a2,a1,a2,a2,a2,a2)*SelfTran+
+          c(b1,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b1,b2,b2,b1,b2,b2,b2,b2)*Conser+
+          c(c1,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c1,c2,c2,c1,c2,c2,c2,c2)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCBelief.2clus<-cfa(model = BasicModel.HV.CCBelief.2Clus,
+                                   data = ESS8,
+                                   group = "country",
+                                   estimator="MLR",
+                                   missing="FIML",
+                                   group.equal="loadings",
+                                   group.partial=c("SelfEnhan=~SE3",
+                                                   "SelfEnhan=~C1",
+                                                   "SelfTran=~SE3",
+                                                   "Conser=~C1"))
+
+sink("./Sink Output/ESS8/BasicModel_SEMConstrain.txt")
+summary(RegSEM.BasicModel.HV.CCBelief.2clus, fit.measures=T, standardized=T)
+sink()
