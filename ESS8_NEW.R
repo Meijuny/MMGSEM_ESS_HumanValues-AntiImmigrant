@@ -1236,15 +1236,15 @@ ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
   theme_minimal()
 
 
-##MMGSEM - 2 cluster
-BasicModel.2clus<-MMGSEM(dat=ESS8_lw,
-                         S1 = list(NoOpen.HV.Metric.M5.marker, CCBelief.Metric.M1.Marker),
+##MMGSEM - 2 cluster - 70 starts
+BasicModel.2clus.50S<-MMGSEM(dat=ESS8_lw,
+                         S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
                          S2 = Str_model,
                          group = "country",
                          nclus=2,
                          seed = 100,
                          userStart = NULL,
-                         s1_fit = list(NoOpen.HV.Metric.Fit5.marker, CCBelief.Metric.Fit1.Marker),
+                         s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                          max_it = 10000L,
                          nstarts = 50L,
                          printing = FALSE,
@@ -1254,6 +1254,25 @@ BasicModel.2clus<-MMGSEM(dat=ESS8_lw,
                          sam_method = "local",
                          meanstr = FALSE,
                          rescaling = F)
+
+BasicModel.2clus.150S<-MMGSEM(dat=ESS8_lw,
+                         S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                         S2 = Str_model,
+                         group = "country",
+                         nclus=2,
+                         seed = 100,
+                         userStart = NULL,
+                         s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                         max_it = 10000L,
+                         nstarts = 150L,
+                         printing = FALSE,
+                         partition = "hard",
+                         endogenous_cov = TRUE,
+                         endo_group_specific = TRUE,
+                         sam_method = "local",
+                         meanstr = FALSE,
+                         rescaling = F)
+
 #
 ##MMGSEM-6 cluster
 BasicModel.6clus<-MMGSEM(dat=ESS8_lw,
@@ -1278,14 +1297,14 @@ BasicModel.6clus<-MMGSEM(dat=ESS8_lw,
 ##Clustering membership
 #
 #2-cluster solution
-clustering.2clus<-t(apply(BasicModel.2clus$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.2clus<-t(apply(BasicModel.2clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
 clustering.2clus[,2]<-ifelse(clustering.2clus[,2]==1,2,0)
 ClusMembership.2clus<-apply(clustering.2clus,1,function(x) sum(x))
 ClusterRes.2clus<-data.frame(group=c(1:23),
                        ClusMembership=ClusMembership.2clus)
 
 countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit5.marker, "group.label"))
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
 ClusterRes.2clus<-merge(ClusterRes.2clus, countries,
                         by.x = "group", by.y = "group")
@@ -1310,7 +1329,7 @@ ClusterRes.6clus<-data.frame(group=c(1:23),
 ##First do the following step that is necessary for both 2-cluster and 6-cluster solution
 #
 ##extract the loadings and residual variances from HV 
-EST_HV<-lavInspect(NoOpen.HV.Metric.Fit5.marker, what = "est")
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
 lambda_HV_23cntry<-lapply(EST_HV, "[[", "lambda")
 theta_HV_23cntry<-lapply(EST_HV, "[[", "theta")
 #
@@ -1393,18 +1412,18 @@ sink()
 ##
 ##-------------------------------------------------------------------------------------------------------
 ##2-cluster: only group 1, 16, 19 are in cluster 1, the rest are in cluster 2
-sam_str_model<-'
+sam_str_model_2clus<-'
 CCBelief~c(a1,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a2,a1,a2,a2,a1,a2,a2,a2,a2)*SelfTran+
           c(b1,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b1,b2,b2,b1,b2,b2,b2,b2)*Conser+
           c(c1,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c2,c1,c2,c2,c1,c2,c2,c2,c2)*SelfEnhan
 '
 
-BasicModel.SAM<-cfa(model = sam_str_model,
+BasicModel.SAM.2clus<-cfa(model = sam_str_model_2clus,
                     sample.cov = Var_eta,
                     sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/BasicModel_SAM.txt")
-summary(BasicModel.SAM, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/BasicModel_SAM_2clus.txt")
+summary(BasicModel.SAM.2clus, fit.measures=T, standardized=T)
 sink()
 
 
@@ -1477,10 +1496,15 @@ RegSEM.BasicModel.HV.CCBelief<-cfa(model = BasicModel.HV.CCBelief,
                                    estimator="MLR",
                                    missing="FIML",
                                    group.equal="loadings",
-                                   group.partial=c("SelfEnhan=~SE3",
-                                                   "SelfEnhan=~C1",
-                                                   "SelfTran=~SE3",
-                                                   "Conser=~C1"))
+                                   group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/BasicModel_FreeRegSEM.txt")
+summary(RegSEM.BasicModel.HV.CCBelief, fit.measures=T, standardized=T)
+sink()
+
+
+###------------------------------------------------------------------------------
+##2-cluster solution
 
 ##faceted dot plot
 FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
@@ -1532,11 +1556,8 @@ RegSEM.BasicModel.HV.CCBelief.2clus<-cfa(model = BasicModel.HV.CCBelief.2Clus,
                                    estimator="MLR",
                                    missing="FIML",
                                    group.equal="loadings",
-                                   group.partial=c("SelfEnhan=~SE3",
-                                                   "SelfEnhan=~C1",
-                                                   "SelfTran=~SE3",
-                                                   "Conser=~C1"))
+                                   group.partial=c("SelfEnhan=~SE3"))
 
-sink("./Sink Output/ESS8/BasicModel_SEMConstrain.txt")
+sink("./Sink Output/ESS8/BasicModel_RegMGSEM_2clus.txt")
 summary(RegSEM.BasicModel.HV.CCBelief.2clus, fit.measures=T, standardized=T)
 sink()
