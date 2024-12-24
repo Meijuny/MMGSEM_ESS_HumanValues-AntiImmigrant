@@ -1317,6 +1317,46 @@ BasicModel.4clus.150S<-MMGSEM(dat=ESS8_lw,
                               rescaling = F)
 
 
+#
+##MMGSEM - 5 cluster - 50 starts
+BasicModel.5clus.50S<-MMGSEM(dat=ESS8_lw,
+                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                             S2 = Str_model,
+                             group = "country",
+                             nclus=5,
+                             seed = 100,
+                             userStart = NULL,
+                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                             max_it = 10000L,
+                             nstarts = 50L,
+                             printing = FALSE,
+                             partition = "hard",
+                             endogenous_cov = TRUE,
+                             endo_group_specific = TRUE,
+                             sam_method = "local",
+                             meanstr = FALSE,
+                             rescaling = F)
+
+##MMGSEM - 5 cluster - 150 starts
+BasicModel.5clus.150S<-MMGSEM(dat=ESS8_lw,
+                              S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                              S2 = Str_model,
+                              group = "country",
+                              nclus=5,
+                              seed = 100,
+                              userStart = NULL,
+                              s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                              max_it = 10000L,
+                              nstarts = 150L,
+                              printing = FALSE,
+                              partition = "hard",
+                              endogenous_cov = TRUE,
+                              endo_group_specific = TRUE,
+                              sam_method = "local",
+                              meanstr = FALSE,
+                              rescaling = F)
+
+
 ##Clustering membership
 #
 #2-cluster solution
@@ -1346,6 +1386,40 @@ countries<-data.frame(group=c(1:23),
 
 ClusterRes.4clus<-merge(ClusterRes.4clus, countries,
                         by.x = "group", by.y = "group")
+
+
+#
+#5-cluster solution - 50 random starts
+clustering.5clus.50s<-t(apply(BasicModel.5clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus.50s[,2]<-ifelse(clustering.5clus.50s[,2]==1,2,0)
+clustering.5clus.50s[,3]<-ifelse(clustering.5clus.50s[,3]==1,3,0)
+clustering.5clus.50s[,4]<-ifelse(clustering.5clus.50s[,4]==1,4,0)
+clustering.5clus.50s[,5]<-ifelse(clustering.5clus.50s[,5]==1,5,0)
+
+ClusMembership.5clus.50s<-apply(clustering.5clus.50s,1,function(x) sum(x))
+ClusterRes.5clus.50s<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.5clus.50s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
+                        by.x = "group", by.y = "group")
+
+#5-cluster solution - 150 random starts
+clustering.5clus.150s<-t(apply(BasicModel.5clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus.150s[,2]<-ifelse(clustering.5clus.150s[,2]==1,2,0)
+clustering.5clus.150s[,3]<-ifelse(clustering.5clus.150s[,3]==1,3,0)
+clustering.5clus.150s[,4]<-ifelse(clustering.5clus.150s[,4]==1,4,0)
+clustering.5clus.150s[,5]<-ifelse(clustering.5clus.150s[,5]==1,5,0)
+
+ClusMembership.5clus.150s<-apply(clustering.5clus.150s,1,function(x) sum(x))
+ClusterRes.5clus.150s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.5clus.150s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
+                            by.x = "group", by.y = "group")
 
 #####################################################################################
 ################### Basic Model: SAM estimation and comparison ######################
@@ -1569,6 +1643,160 @@ SAM_4clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan
 htmlwidgets::saveWidget(as_widget(SAM_4clus_3D), "SAM_4clus_3D.html")
 
 
+##
+##-------------------------------------------------------------------------------------------------------
+##5-cluster with 50 random starts: 
+##cluster 1: group 4,7,10,12,15,17,23
+##cluster 2: group 8,9,13,14,18,22
+##cluster 3: group 2,6,21
+##cluster 4: group 1,3,5,11,19,20
+##cluster 5: group 16
+
+sam_str_model_5clus.50s<-'
+CCBelief~c(a4,a3,a4,a1,a4,a3,a1,a2,a2,a1,a4,a1,a2,a2,a1,a5,a1,a2,a4,a4,a3,a2,a1)*SelfTran+
+          c(b4,b3,b4,b1,b4,b3,b1,b2,b2,b1,b4,b1,b2,b2,b1,b5,b1,b2,b4,b4,b3,b2,b1)*Conser+
+          c(c4,c3,c4,c1,c4,c3,c1,c2,c2,c1,c4,c1,c2,c2,c1,c5,c1,c2,c4,c4,c3,c2,c1)*SelfEnhan
+'
+
+BasicModel.SAM.5clus.50s<-cfa(model = sam_str_model_5clus.50s,
+                          sample.cov = Var_eta,
+                          sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_SAM_5clus_50s.txt")
+summary(BasicModel.SAM.5clus.50s, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.50s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x") +
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.50s, 
+                         by.x = "group", by.y = "group")
+
+SAM_5clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                      type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(SAM_5clus_3D), "SAM_5clus_3D.html")
+
+##
+##-------------------------------------------------------------------------------------------------------
+##5-cluster with 150 random starts: 
+##cluster 1: group 4,15
+##cluster 2: group 7,8,10,12,13,14,17,18,22,23
+##cluster 3: group 1,3,5,9,11,19,20
+##cluster 4: group 16
+##cluster 5: group 2,6,21
+
+sam_str_model_5clus.150s<-'
+CCBelief~c(a3,a5,a3,a1,a3,a5,a2,a2,a3,a2,a3,a2,a2,a2,a1,a4,a2,a2,a3,a3,a5,a2,a2)*SelfTran+
+          c(b3,b5,b3,b1,b3,b5,b2,b2,b3,b2,b3,b2,b2,b2,b1,b4,b2,b2,b3,b3,b5,b2,b2)*Conser+
+          c(c3,c5,c3,c1,c3,c5,c2,c2,c3,c2,c3,c2,c2,c2,c1,c4,c2,c2,c3,c3,c5,c2,c2)*SelfEnhan
+'
+
+BasicModel.SAM.5clus.150s<-cfa(model = sam_str_model_5clus.150s,
+                              sample.cov = Var_eta,
+                              sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_SAM_5clus_150s.txt")
+summary(BasicModel.SAM.5clus.150s, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x") +
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.150s, 
+                         by.x = "group", by.y = "group")
+
+SAM_5clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                      type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(SAM_5clus_3D), "SAM_5clus_3D.html")
+
+
+
 #####################################################################################
 ############## Basic Model: Simultaneously MGSEM estimation and comparison ##########
 #####################################################################################
@@ -1735,6 +1963,154 @@ summary(RegSEM.BasicModel.HV.CCBelief.4clus, fit.measures=T, standardized=T)
 sink()
 
 lavTestLRT(RegSEM.BasicModel.HV.CCBelief, RegSEM.BasicModel.HV.CCBelief.4clus)
+
+
+
+###------------------------------------------------------------------------------
+##5-cluster solution - 50 random starts
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.5clus.50s, 
+                         by.x = "group", by.y = "group")
+
+FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country, 
+                                         FreeSEM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Belief")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.CCBelief.5Clus.50s<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+##Structural Model:
+CCBelief~c(a4,a3,a4,a1,a4,a3,a1,a2,a2,a1,a4,a1,a2,a2,a1,a5,a1,a2,a4,a4,a3,a2,a1)*SelfTran+
+          c(b4,b3,b4,b1,b4,b3,b1,b2,b2,b1,b4,b1,b2,b2,b1,b5,b1,b2,b4,b4,b3,b2,b1)*Conser+
+          c(c4,c3,c4,c1,c4,c3,c1,c2,c2,c1,c4,c1,c2,c2,c1,c5,c1,c2,c4,c4,c3,c2,c1)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCBelief.5clus.50s<-cfa(model = BasicModel.HV.CCBelief.5Clus.50s,
+                                         data = ESS8,
+                                         group = "country",
+                                         estimator="MLR",
+                                         missing="FIML",
+                                         group.equal="loadings",
+                                         group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/BasicModel_RegMGSEM_5clus_50s.txt")
+summary(RegSEM.BasicModel.HV.CCBelief.5clus.50s, fit.measures=T, standardized=T)
+sink()
+
+lavTestLRT(RegSEM.BasicModel.HV.CCBelief, RegSEM.BasicModel.HV.CCBelief.5clus.50s)
+
+
+###------------------------------------------------------------------------------
+##5-cluster solution - 150 random starts
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCBelief)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.5clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country, 
+                                         FreeSEM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.CCBelief.5Clus.150s<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+##Structural Model:
+CCBelief~c(a3,a5,a3,a1,a3,a5,a2,a2,a3,a2,a3,a2,a2,a2,a1,a4,a2,a2,a3,a3,a5,a2,a2)*SelfTran+
+          c(b3,b5,b3,b1,b3,b5,b2,b2,b3,b2,b3,b2,b2,b2,b1,b4,b2,b2,b3,b3,b5,b2,b2)*Conser+
+          c(c3,c5,c3,c1,c3,c5,c2,c2,c3,c2,c3,c2,c2,c2,c1,c4,c2,c2,c3,c3,c5,c2,c2)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCBelief.5clus.150s<-cfa(model = BasicModel.HV.CCBelief.5Clus.150s,
+                                             data = ESS8,
+                                             group = "country",
+                                             estimator="MLR",
+                                             missing="FIML",
+                                             group.equal="loadings",
+                                             group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/BasicModel_RegMGSEM_5clus_150s.txt")
+summary(RegSEM.BasicModel.HV.CCBelief.5clus.150s, fit.measures=T, standardized=T)
+sink()
+
+lavTestLRT(RegSEM.BasicModel.HV.CCBelief, RegSEM.BasicModel.HV.CCBelief.5clus.150s)
+
+
 
 
 #####################################################################################
