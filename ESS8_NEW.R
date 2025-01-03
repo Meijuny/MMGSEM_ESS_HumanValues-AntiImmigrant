@@ -2328,6 +2328,46 @@ CCPolicySupport.3clus.150S<-MMGSEM(dat=ESS8_lw,
 
 
 
+##4 clusters 50 random starts
+CCPolicySupport.4clus.50S<-MMGSEM(dat=ESS8_lw,
+                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                  S2 = Str_model,
+                                  group = "country",
+                                  nclus=4,
+                                  seed = 100,
+                                  userStart = NULL,
+                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                  max_it = 10000L,
+                                  nstarts = 50L,
+                                  printing = FALSE,
+                                  partition = "hard",
+                                  endogenous_cov = TRUE,
+                                  endo_group_specific = TRUE,
+                                  sam_method = "local",
+                                  meanstr = FALSE,
+                                  rescaling = F)
+#
+##4 clusters 150 random starts
+CCPolicySupport.4clus.150S<-MMGSEM(dat=ESS8_lw,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                   S2 = Str_model,
+                                   group = "country",
+                                   nclus=4,
+                                   seed = 100,
+                                   userStart = NULL,
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                   max_it = 10000L,
+                                   nstarts = 150L,
+                                   printing = FALSE,
+                                   partition = "hard",
+                                   endogenous_cov = TRUE,
+                                   endo_group_specific = TRUE,
+                                   sam_method = "local",
+                                   meanstr = FALSE,
+                                   rescaling = F)
+
+
+
 
 ##Clustering membership
 #
