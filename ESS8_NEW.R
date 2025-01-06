@@ -2114,7 +2114,7 @@ lavTestLRT(RegSEM.BasicModel.HV.CCBelief, RegSEM.BasicModel.HV.CCBelief.5clus.15
 
 
 #####################################################################################
-############## Mapping the clustering results on Map  ###############################
+############## CCBelief: Mapping the clustering results on Map  #####################
 #####################################################################################
 
 
@@ -2365,6 +2365,25 @@ CCPolicySupport.4clus.150S<-MMGSEM(dat=ESS8_lw,
                                    sam_method = "local",
                                    meanstr = FALSE,
                                    rescaling = F)
+#
+##4 clusters 300 random starts
+CCPolicySupport.4clus.300S<-MMGSEM(dat=ESS8_lw,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                   S2 = Str_model,
+                                   group = "country",
+                                   nclus=4,
+                                   seed = 100,
+                                   userStart = NULL,
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                   max_it = 10000L,
+                                   nstarts = 300L,
+                                   printing = FALSE,
+                                   partition = "hard",
+                                   endogenous_cov = TRUE,
+                                   endo_group_specific = TRUE,
+                                   sam_method = "local",
+                                   meanstr = FALSE,
+                                   rescaling = F)
 
 
 
@@ -2385,6 +2404,57 @@ countries<-data.frame(group=c(1:23),
 
 ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
                         by.x = "group", by.y = "group")
+
+#
+#4-cluster solution 50 random starts
+clustering.4clus.50s<-t(apply(CCPolicySupport.4clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus.50s[,2]<-ifelse(clustering.4clus.50s[,2]==1,2,0)
+clustering.4clus.50s[,3]<-ifelse(clustering.4clus.50s[,3]==1,3,0)
+clustering.4clus.50s[,4]<-ifelse(clustering.4clus.50s[,4]==1,4,0)
+
+ClusMembership.4clus.50s<-apply(clustering.4clus.50s,1,function(x) sum(x))
+ClusterRes.4clus.50s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.4clus.50s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.4clus.50s<-merge(ClusterRes.4clus.50s, countries,
+                             by.x = "group", by.y = "group")
+
+#
+#4-cluster solution 150 random starts
+clustering.4clus.150s<-t(apply(CCPolicySupport.4clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus.150s[,2]<-ifelse(clustering.4clus.150s[,2]==1,2,0)
+clustering.4clus.150s[,3]<-ifelse(clustering.4clus.150s[,3]==1,3,0)
+clustering.4clus.150s[,4]<-ifelse(clustering.4clus.150s[,4]==1,4,0)
+
+ClusMembership.4clus.150s<-apply(clustering.4clus.150s,1,function(x) sum(x))
+ClusterRes.4clus.150s<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.4clus.150s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.4clus.150s<-merge(ClusterRes.4clus.150s, countries,
+                        by.x = "group", by.y = "group")
+
+#
+#4-cluster solution 300 random starts --> same as the 150 random starts
+clustering.4clus.300s<-t(apply(CCPolicySupport.4clus.300S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus.300s[,2]<-ifelse(clustering.4clus.300s[,2]==1,2,0)
+clustering.4clus.300s[,3]<-ifelse(clustering.4clus.300s[,3]==1,3,0)
+clustering.4clus.300s[,4]<-ifelse(clustering.4clus.300s[,4]==1,4,0)
+
+ClusMembership.4clus.300s<-apply(clustering.4clus.300s,1,function(x) sum(x))
+ClusterRes.4clus.300s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.4clus.300s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.4clus.300s<-merge(ClusterRes.4clus.300s, countries,
+                             by.x = "group", by.y = "group")
 
 
 
@@ -2554,6 +2624,168 @@ htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D), "CCPolSupport_3clus_3D
 
 
 
+##
+##-------------------------------------------------------------------------------------------------------
+##4-cluster - 50 random starts: 
+##cluster 1: group 11, 12
+##cluster 2: group 16
+##cluster 3: group 6, 13, 14, 19,21,23
+##cluster 4: group 1,2,3,4,5,7,8,9,10,15,17,18,20,22
+
+
+sam_CCPolSupport_4clus.50s<-'
+CCPolicySupport~c(a4,a4,a4,a4,a4,a3,a4,a4,a4,a4,a1,a1,a3,a3,a4,a2,a4,a4,a3,a4,a3,a4,a3)*SelfTran+
+                c(b4,b4,b4,b4,b4,b3,b4,b4,b4,b4,b1,b1,b3,b3,b4,b2,b4,b4,b3,b4,b3,b4,b3)*Conser+
+                c(c4,c4,c4,c4,c4,c3,c4,c4,c4,c4,c1,c1,c3,c3,c4,c2,c4,c4,c3,c4,c3,c4,c3)*SelfEnhan
+'
+
+CCPolSupport.SAM.4clus.50s<-cfa(model = sam_CCPolSupport_4clus.50s,
+                            sample.cov = Var_eta,
+                            sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/CCPolSupport_SAM_4clus_50s.txt")
+summary(CCPolSupport.SAM.4clus.50s, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.4clus.50s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.4clus.50s, 
+                         by.x = "group", by.y = "group")
+
+CCPolSupport_4clus_3D_50s<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                               type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Policy Support",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+#htmlwidgets::saveWidget(as_widget(CCPolSupport_4clus_3D_50s), "CCPolSupport_4clus_3D_50s.html")
+
+
+
+##
+##-------------------------------------------------------------------------------------------------------
+##4-cluster - 150 random starts: 
+##cluster 1: group 11, 12
+##cluster 2: group 1,2,3,4,5,7,8,9,10,15,17,18,20,22,23
+##cluster 3: group 6, 13, 14, 19,21
+##cluster 4: group 16
+
+
+sam_CCPolSupport_4clus.150s<-'
+CCPolicySupport~c(a2,a2,a2,a2,a2,a3,a2,a2,a2,a2,a1,a1,a3,a3,a2,a4,a2,a2,a3,a2,a3,a2,a2)*SelfTran+
+                c(b2,b2,b2,b2,b2,b3,b2,b2,b2,b2,b1,b1,b3,b3,b2,b4,b2,b2,b3,b2,b3,b2,b2)*Conser+
+                c(c2,c2,c2,c2,c2,c3,c2,c2,c2,c2,c1,c1,c3,c3,c2,c4,c2,c2,c3,c2,c3,c2,c2)*SelfEnhan
+'
+
+CCPolSupport.SAM.4clus.150s<-cfa(model = sam_CCPolSupport_4clus.150s,
+                                sample.cov = Var_eta,
+                                sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/CCPolSupport_SAM_4clus_150s.txt")
+summary(CCPolSupport.SAM.4clus.150s, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.4clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0.05, -0.25, 0.5)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.4clus.150s, 
+                         by.x = "group", by.y = "group")
+
+CCPolSupport_4clus_3D_150s<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                   type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Policy Support",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+htmlwidgets::saveWidget(as_widget(CCPolSupport_4clus_3D_150s), "CCPolSupport_4clus_3D_150s.html")
+
+
+
 #####################################################################################
 ################ Basic Model - CC Policy Support: Simultaneously MGSEM ##############
 #####################################################################################
@@ -2660,3 +2892,222 @@ summary(RegSEM.BasicModel.HV.CCPolSupport.3clus, fit.measures=T, standardized=T)
 sink()
 
 lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.3clus, RegSEM.BasicModel.HV.CCPolSupport)
+
+
+
+###------------------------------------------------------------------------------
+##4-cluster solution - 50 random starts
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCPolSupport)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.4clus.50s, 
+                         by.x = "group", by.y = "group")
+
+FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country, 
+                                         FreeSEM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.25, 0.5)                             # Line positions
+)
+
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.CCPolSupport.4Clus.50s<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCPolicySupport=~support3+support1+support2
+
+##Structural Model:
+CCPolicySupport~c(a4,a4,a4,a4,a4,a3,a4,a4,a4,a4,a1,a1,a3,a3,a4,a2,a4,a4,a3,a4,a3,a4,a3)*SelfTran+
+                c(b4,b4,b4,b4,b4,b3,b4,b4,b4,b4,b1,b1,b3,b3,b4,b2,b4,b4,b3,b4,b3,b4,b3)*Conser+
+                c(c4,c4,c4,c4,c4,c3,c4,c4,c4,c4,c1,c1,c3,c3,c4,c2,c4,c4,c3,c4,c3,c4,c3)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCPolSupport.4clus.50s<-cfa(model = BasicModel.HV.CCPolSupport.4Clus.50s,
+                                             data = ESS8,
+                                             group = "country",
+                                             estimator="MLR",
+                                             missing="FIML",
+                                             group.equal="loadings",
+                                             group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_RegMGSEM_4clus_50s.txt")
+summary(RegSEM.BasicModel.HV.CCPolSupport.4clus.50s, fit.measures=T, standardized=T)
+sink()
+
+lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.4clus.50s, RegSEM.BasicModel.HV.CCPolSupport)
+
+
+
+###------------------------------------------------------------------------------
+##4-cluster solution - 150 random starts
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCPolSupport)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.4clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country, 
+                                         FreeSEM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0.05, -0.25, 0.5)                             # Line positions
+)
+
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.CCPolSupport.4Clus.150s<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCPolicySupport=~support3+support1+support2
+
+##Structural Model:
+CCPolicySupport~c(a2,a2,a2,a2,a2,a3,a2,a2,a2,a2,a1,a1,a3,a3,a2,a4,a2,a2,a3,a2,a3,a2,a2)*SelfTran+
+                c(b2,b2,b2,b2,b2,b3,b2,b2,b2,b2,b1,b1,b3,b3,b2,b4,b2,b2,b3,b2,b3,b2,b2)*Conser+
+                c(c2,c2,c2,c2,c2,c3,c2,c2,c2,c2,c1,c1,c3,c3,c2,c4,c2,c2,c3,c2,c3,c2,c2)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCPolSupport.4clus.150s<-cfa(model = BasicModel.HV.CCPolSupport.4Clus.150s,
+                                                 data = ESS8,
+                                                 group = "country",
+                                                 estimator="MLR",
+                                                 missing="FIML",
+                                                 group.equal="loadings",
+                                                 group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_RegMGSEM_4clus_150s.txt")
+summary(RegSEM.BasicModel.HV.CCPolSupport.4clus.150s, fit.measures=T, standardized=T)
+sink()
+
+lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.4clus.150s, RegSEM.BasicModel.HV.CCPolSupport)
+
+
+
+#####################################################################################
+############## CC Policy Support: Mapping the clustering results on Map  ############
+#####################################################################################
+
+
+###----------------------------------------------------------------------------------
+##4 cluster solution:
+
+##take out the world map
+world_map<-map_data("world")
+
+##filter to be a eu map:
+eu_countries <- c(
+  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", 
+  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", 
+  "Ireland", "Iceland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", 
+  "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia",
+  "Slovakia", "Slovenia", "Switzerland",
+  "Spain", "Sweden", "UK", "Israel",
+  "Turkey", "Lebanon", "Jordan", "Egypt", "Syria",
+  "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Moldova"
+)
+
+eu_map <- world_map %>%
+  filter(region %in% eu_countries)
+
+##add a new column called region to match the country names with the world map data country names
+ClusterRes.4clus.150s<-ClusterRes.4clus.150s %>%
+  mutate(region=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czech Republic",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "UK",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ "Lithuania",
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  )) %>%
+  select(ClusMembership, region)
+
+##merge the data:
+map_with_4clusters.150s <- eu_map %>%
+  left_join(ClusterRes.4clus.150s, by = "region")
+
+##lay out on the map:
+ggplot(map_with_4clusters.150s, aes(long, lat, group = group, fill = factor(ClusMembership))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "Cluster"
+  ) +
+  theme_minimal()
+
