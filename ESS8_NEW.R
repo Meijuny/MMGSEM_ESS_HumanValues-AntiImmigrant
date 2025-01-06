@@ -2386,6 +2386,66 @@ CCPolicySupport.4clus.300S<-MMGSEM(dat=ESS8_lw,
                                    rescaling = F)
 
 
+#
+##6 clusters 50 random starts
+CCPolicySupport.6clus.50S<-MMGSEM(dat=ESS8_lw,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                   S2 = Str_model,
+                                   group = "country",
+                                   nclus=6,
+                                   seed = 100,
+                                   userStart = NULL,
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                   max_it = 10000L,
+                                   nstarts = 50L,
+                                   printing = FALSE,
+                                   partition = "hard",
+                                   endogenous_cov = TRUE,
+                                   endo_group_specific = TRUE,
+                                   sam_method = "local",
+                                   meanstr = FALSE,
+                                   rescaling = F)
+
+#
+##6 clusters 150 random starts
+CCPolicySupport.6clus.150S<-MMGSEM(dat=ESS8_lw,
+                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                  S2 = Str_model,
+                                  group = "country",
+                                  nclus=6,
+                                  seed = 100,
+                                  userStart = NULL,
+                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                  max_it = 10000L,
+                                  nstarts = 150L,
+                                  printing = FALSE,
+                                  partition = "hard",
+                                  endogenous_cov = TRUE,
+                                  endo_group_specific = TRUE,
+                                  sam_method = "local",
+                                  meanstr = FALSE,
+                                  rescaling = F)
+#
+##6 clusters 300 random starts
+CCPolicySupport.6clus.300S<-MMGSEM(dat=ESS8_lw,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+                                   S2 = Str_model,
+                                   group = "country",
+                                   nclus=6,
+                                   seed = 100,
+                                   userStart = NULL,
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                   max_it = 10000L,
+                                   nstarts = 300L,
+                                   printing = FALSE,
+                                   partition = "hard",
+                                   endogenous_cov = TRUE,
+                                   endo_group_specific = TRUE,
+                                   sam_method = "local",
+                                   meanstr = FALSE,
+                                   rescaling = F)
+
+
 
 
 ##Clustering membership
@@ -2454,6 +2514,65 @@ countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
 ClusterRes.4clus.300s<-merge(ClusterRes.4clus.300s, countries,
+                             by.x = "group", by.y = "group")
+
+
+#
+#6-cluster solution 50 random starts
+clustering.6clus.50s<-t(apply(CCPolicySupport.6clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus.50s[,2]<-ifelse(clustering.6clus.50s[,2]==1,2,0)
+clustering.6clus.50s[,3]<-ifelse(clustering.6clus.50s[,3]==1,3,0)
+clustering.6clus.50s[,4]<-ifelse(clustering.6clus.50s[,4]==1,4,0)
+clustering.6clus.50s[,5]<-ifelse(clustering.6clus.50s[,5]==1,5,0)
+clustering.6clus.50s[,6]<-ifelse(clustering.6clus.50s[,6]==1,6,0)
+
+ClusMembership.6clus.50s<-apply(clustering.6clus.50s,1,function(x) sum(x))
+ClusterRes.6clus.50s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.6clus.50s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus.50s<-merge(ClusterRes.6clus.50s, countries,
+                            by.x = "group", by.y = "group")
+
+#
+#6-cluster solution 150 random starts
+clustering.6clus.150s<-t(apply(CCPolicySupport.6clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus.150s[,2]<-ifelse(clustering.6clus.150s[,2]==1,2,0)
+clustering.6clus.150s[,3]<-ifelse(clustering.6clus.150s[,3]==1,3,0)
+clustering.6clus.150s[,4]<-ifelse(clustering.6clus.150s[,4]==1,4,0)
+clustering.6clus.150s[,5]<-ifelse(clustering.6clus.150s[,5]==1,5,0)
+clustering.6clus.150s[,6]<-ifelse(clustering.6clus.150s[,6]==1,6,0)
+
+ClusMembership.6clus.150s<-apply(clustering.6clus.150s,1,function(x) sum(x))
+ClusterRes.6clus.150s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.6clus.150s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus.150s<-merge(ClusterRes.6clus.150s, countries,
+                            by.x = "group", by.y = "group")
+
+
+#
+#6-cluster solution 300 random starts
+clustering.6clus.300s<-t(apply(CCPolicySupport.6clus.300S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus.300s[,2]<-ifelse(clustering.6clus.300s[,2]==1,2,0)
+clustering.6clus.300s[,3]<-ifelse(clustering.6clus.300s[,3]==1,3,0)
+clustering.6clus.300s[,4]<-ifelse(clustering.6clus.300s[,4]==1,4,0)
+clustering.6clus.300s[,5]<-ifelse(clustering.6clus.300s[,5]==1,5,0)
+clustering.6clus.300s[,6]<-ifelse(clustering.6clus.300s[,6]==1,6,0)
+
+ClusMembership.6clus.300s<-apply(clustering.6clus.300s,1,function(x) sum(x))
+ClusterRes.6clus.300s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.6clus.300s)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus.300s<-merge(ClusterRes.6clus.300s, countries,
                              by.x = "group", by.y = "group")
 
 
