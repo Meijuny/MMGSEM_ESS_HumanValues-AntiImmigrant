@@ -1202,7 +1202,7 @@ BasicModel.Selection<-ModelSelection(dat=ESS8_lw,
                                      userStart = NULL,
                                      s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                                      max_it = 10000L,
-                                     nstarts = 70L,
+                                     nstarts = 100L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -1212,6 +1212,10 @@ BasicModel.Selection<-ModelSelection(dat=ESS8_lw,
                                      rescaling = F)
 #
 View(BasicModel.Selection$Overview)
+RandomStarts100<-BasicModel.Selection$Overview
+
+save(RandomStarts100, file = "100RandomStarts.RData")
+
 ##plot for CHull observed
 ggplot(BasicModel.Selection$Overview, aes(x=nrpar, y=LL)) +
   geom_point()+
@@ -2903,6 +2907,88 @@ CCPolSupport_4clus_3D_150s<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser,
 
 htmlwidgets::saveWidget(as_widget(CCPolSupport_4clus_3D_150s), "CCPolSupport_4clus_3D_150s.html")
 
+##
+##-------------------------------------------------------------------------------------------------------
+##6-cluster - 150 random starts: 
+##cluster 1: group 1,4,5,7,9,10,20,22
+##cluster 2: group 15
+##cluster 3: group 11,12
+##cluster 4: group 6,13,14,19,21
+##cluster 5: group 16
+##cluster 6: group 2,3,8,17,18,23
+
+
+sam_CCPolSupport_6clus.150s<-'
+CCPolicySupport~c(a1,a6,a6,a1,a1,a4,a1,a6,a1,a1,a3,a3,a4,a4,a2,a5,a6,a6,a4,a1,a4,a1,a6)*SelfTran+
+                c(b1,b6,b6,b1,b1,b4,b1,b6,b1,b1,b3,b3,b4,b4,b2,b5,b6,b6,b4,b1,b4,b1,b6)*Conser+
+                c(c1,c6,c6,c1,c1,c4,c1,c6,c1,c1,c3,c3,c4,c4,c2,c5,c6,c6,c4,c1,c4,c1,c6)*SelfEnhan
+'
+
+CCPolSupport.SAM.6clus.150s<-cfa(model = sam_CCPolSupport_6clus.150s,
+                                 sample.cov = Var_eta,
+                                 sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/CCPolSupport_SAM_6clus_150s.txt")
+summary(CCPolSupport.SAM.6clus.150s, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.6clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0.05, -0.25, 0.5)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.6clus.150s, 
+                         by.x = "group", by.y = "group")
+
+CCPolSupport_6clus_3D_150s<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                    type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM with clustering results - Human Values on Climate Change Policy Support",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+htmlwidgets::saveWidget(as_widget(CCPolSupport_6clus_3D_150s), "CCPolSupport_6clus_3D_150s.html")
+
+
 
 
 #####################################################################################
@@ -3159,6 +3245,79 @@ summary(RegSEM.BasicModel.HV.CCPolSupport.4clus.150s, fit.measures=T, standardiz
 sink()
 
 lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.4clus.150s, RegSEM.BasicModel.HV.CCPolSupport)
+
+
+###------------------------------------------------------------------------------
+##6-cluster solution - 150 random starts
+
+##faceted dot plot
+FreeSEM_param<-parameterEstimates(RegSEM.BasicModel.HV.CCPolSupport)
+
+FreeSEM_reg_param<-FreeSEM_param %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSEM_reg_param<-merge(FreeSEM_reg_param, ClusterRes.6clus.150s, 
+                         by.x = "group", by.y = "group")
+
+FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country, 
+                                         FreeSEM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0.05, -0.25, 0.5)                             # Line positions
+)
+
+
+ggplot(FreeSEM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "Simultaneous MGSEM with clustering results - Human Values on Climate Change Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.CCPolSupport.6Clus.150s<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCPolicySupport=~support3+support1+support2
+
+##Structural Model:
+CCPolicySupport~c(a1,a6,a6,a1,a1,a4,a1,a6,a1,a1,a3,a3,a4,a4,a2,a5,a6,a6,a4,a1,a4,a1,a6)*SelfTran+
+                c(b1,b6,b6,b1,b1,b4,b1,b6,b1,b1,b3,b3,b4,b4,b2,b5,b6,b6,b4,b1,b4,b1,b6)*Conser+
+                c(c1,c6,c6,c1,c1,c4,c1,c6,c1,c1,c3,c3,c4,c4,c2,c5,c6,c6,c4,c1,c4,c1,c6)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.CCPolSupport.6clus.150s<-cfa(model = BasicModel.HV.CCPolSupport.6Clus.150s,
+                                                  data = ESS8,
+                                                  group = "country",
+                                                  estimator="MLR",
+                                                  missing="FIML",
+                                                  group.equal="loadings",
+                                                  group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_RegMGSEM_6clus_150s.txt")
+summary(RegSEM.BasicModel.HV.CCPolSupport.6clus.150s, fit.measures=T, standardized=T)
+sink()
+
+lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.6clus.150s, RegSEM.BasicModel.HV.CCPolSupport)
 
 
 
