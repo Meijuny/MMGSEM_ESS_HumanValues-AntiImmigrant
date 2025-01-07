@@ -1714,14 +1714,14 @@ FreeSAM_reg_param<-FreeSAMparam %>%
 FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.50s, 
                          by.x = "group", by.y = "group")
 
-SAM_5clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+SAM_5clus_50s_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
                       type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM with clustering results - Human Values on Climate Change Belief",
+  layout(title="SAM 5 clusters 50 S with clustering results - Human Values on Climate Change Belief",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-htmlwidgets::saveWidget(as_widget(SAM_5clus_3D), "SAM_5clus_3D.html")
+htmlwidgets::saveWidget(as_widget(SAM_5clus_50s_3D), "SAM_5clus_50S_3D.html")
 
 ##
 ##-------------------------------------------------------------------------------------------------------
@@ -1790,14 +1790,14 @@ FreeSAM_reg_param<-FreeSAMparam %>%
 FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.150s, 
                          by.x = "group", by.y = "group")
 
-SAM_5clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+SAM_5clus_150S_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
                       type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM with clustering results - Human Values on Climate Change Belief",
+  layout(title="SAM 5 cluster 150 starts with clustering results - Human Values on Climate Change Belief",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-htmlwidgets::saveWidget(as_widget(SAM_5clus_3D), "SAM_5clus_3D.html")
+htmlwidgets::saveWidget(as_widget(SAM_5clus_150S_3D), "SAM_5clus_150S_3D.html")
 
 
 
