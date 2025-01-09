@@ -787,7 +787,12 @@ sink()
 ############# Climate Change Policy Support - Measurement Model #####################
 #####################################################################################
 
-##Configural Invariance Model 1: perfect fit since the model is just identified
+
+###---------------------------------------------------------------------------------------
+##Configural Model with standardized factor variance approach:
+
+##Configural Invariance Model 1: should be perfect fit since the model is just identified
+##but cannot converge
 CCPolSupport.Config.M1<-'
 CCPolicySupport=~support1+support2+support3
 '
@@ -802,6 +807,43 @@ CCPolSupport.Config.Fit1<-cfa(model = CCPolSupport.Config.M1,
 sink("./Sink Output/ESS8/CCPolicySupport_Config_fit1.txt")
 summary(CCPolSupport.Config.Fit1, fit.measures=T, standardized=T)
 sink()
+
+##Configural Invariance Model 1 with wide bounded estimation:
+CCPolSupport.Config.M1<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Config.Fit1.WideBound<-cfa(model = CCPolSupport.Config.M1,
+                              data = ESS8,
+                              group = "country",
+                              estimator="MLR",
+                              missing="FIML",
+                              std.lv=T,
+                              bounds="wide")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Config_fit1_WideBound.txt")
+summary(CCPolSupport.Config.Fit1.WideBound, fit.measures=T, standardized=T)
+sink()
+
+##Configural Invariance Model 1 with standard bounded estimation:
+CCPolSupport.Config.M1<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Config.Fit1.StandardBound<-cfa(model = CCPolSupport.Config.M1,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        std.lv=T,
+                                        bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Config_fit1_StandardBound.txt")
+summary(CCPolSupport.Config.Fit1.StandardBound, fit.measures=T, standardized=T)
+sink()
+
+###---------------------------------------------------------------------------------------
+##Full Metric Model with standardized factor variance approach:
 
 ##(full) metric Invariance Model 1:
 CCPolSupport.Metric.M1<-'
@@ -844,23 +886,172 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
   arrange(desc(count))
 
 
-##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
-CCPolSupport.Metric.M2<-'
+##(full) metric Invariance Model 1 with wide bounded estimation:
+CCPolSupport.Metric.M1<-'
 CCPolicySupport=~support1+support2+support3
 '
 
-CCPolSupport.Metric.Fit2<-cfa(model = CCPolSupport.Metric.M2,
+CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1,
                               data = ESS8,
                               group = "country",
                               estimator="MLR",
                               missing="FIML",
                               group.equal="loadings",
-                              group.partial=c("CCPolicySupport=~support3"),
-                              std.lv=T)
+                              std.lv=T,
+                              bounds="wide")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2.txt")
-summary(CCPolSupport.Metric.Fit2, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_WideBound.txt")
+summary(CCPolSupport.Metric.Fit1.WideBound, fit.measures=T, standardized=T)
 sink()
+
+##(full) metric Invariance Model 1 with standard bounded estimation:
+CCPolSupport.Metric.M1<-'
+CCPolicySupport=~support1+support2+support3
+'
+
+CCPolSupport.Metric.Fit1.StandardBound<-cfa(model = CCPolSupport.Metric.M1,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        group.equal="loadings",
+                                        std.lv=T,
+                                        bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_StandardBound.txt")
+summary(CCPolSupport.Metric.Fit1.StandardBound, fit.measures=T, standardized=T)
+sink()
+
+###---------------------------------------------------------------------------------------
+##Full Metric Model with Marker Variable approach (support3 as marker):
+
+##no bound
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support3+support1+support2
+'
+
+CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
+
+#sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker.txt")
+#summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
+#sink()
+
+##wide bound
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support3+support1+support2
+'
+
+CCPolSupport.Metric.Fit1.WideBound.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        group.equal="loadings",
+                                        bounds="wide")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker_WideBound.txt")
+summary(CCPolSupport.Metric.Fit1.WideBound.Marker, fit.measures=T, standardized=T)
+sink()
+
+##standard bound
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support3+support1+support2
+'
+
+CCPolSupport.Metric.Fit1.StandBound.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               group.equal="loadings",
+                                               bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker_StandardBound.txt")
+summary(CCPolSupport.Metric.Fit1.StandBound.Marker, fit.measures=T, standardized=T)
+sink()
+
+###---------------------------------------------------------------------------------------
+##Partial Metric Model with Marker Variable approach (support2 as marker):
+
+##first run the full metric model with support2 as marker to have a comparison later:
+CCPolSupport.Metric.M2.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Support2Marker_FullMetric.txt")
+summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
+sink()
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##no bound
+##cannot converge
+CCPolSupport.Metric.M2.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings",
+                                     group.partial=c("CCPolicySupport=~support3"))
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker.txt")
+summary(CCPolSupport.Metric.Fit2.Marker, fit.measures=T, standardized=T)
+sink()
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##wide bound
+CCPolSupport.Metric.M2.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings",
+                                     group.partial=c("CCPolicySupport=~support3"),
+                                     bounds="wide")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
+summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
+sink()
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##standard bound
+CCPolSupport.Metric.M2.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.StandBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               group.equal="loadings",
+                                               group.partial=c("CCPolicySupport=~support3"),
+                                               bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_StandBound.txt")
+summary(CCPolSupport.Metric.Fit2.Marker.StandBound, fit.measures=T, standardized=T)
+sink()
+
+
 
 #####################################################################################
 ################### Personal Efficacy - Measurement Model ###########################
@@ -1215,6 +1406,13 @@ View(BasicModel.Selection$Overview)
 RandomStarts100<-BasicModel.Selection$Overview
 
 save(RandomStarts100, file = "100RandomStarts.RData")
+
+RandomStarts100 %>% filter(Clusters!=4) %>%
+  ggplot(aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
 
 ##plot for CHull observed
 ggplot(BasicModel.Selection$Overview, aes(x=nrpar, y=LL)) +
