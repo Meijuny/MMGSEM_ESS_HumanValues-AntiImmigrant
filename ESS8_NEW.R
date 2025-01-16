@@ -1470,6 +1470,27 @@ BasicModel.2clus.150S<-MMGSEM(dat=ESS8_lw,
                          meanstr = FALSE,
                          rescaling = F)
 
+##test 3 clusters
+##150 starts - FIML
+BasicModel.3clus.150S.FIML<-MMGSEM(dat=ESS8,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                                   S2 = Str_model,
+                                   group = "country",
+                                   nclus=3,
+                                   seed = 100,
+                                   userStart = NULL,
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                                   max_it = 10000L,
+                                   nstarts = 150L,
+                                   printing = FALSE,
+                                   partition = "hard",
+                                   endogenous_cov = TRUE,
+                                   endo_group_specific = TRUE,
+                                   sam_method = "local",
+                                   meanstr = FALSE,
+                                   rescaling = F,
+                                   missing="FIML")
+
 #
 ##MMGSEM - 4 cluster - 50 starts
 BasicModel.4clus.50S<-MMGSEM(dat=ESS8_lw,
@@ -1605,6 +1626,20 @@ countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
 ClusterRes.2clus<-merge(ClusterRes.2clus, countries,
+                        by.x = "group", by.y = "group")
+
+#
+#3-cluster 150s FIML solution
+clustering.3clus<-t(apply(BasicModel.3clus.150S.FIML$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.3clus[,2]<-ifelse(clustering.3clus[,2]==1,2,0)
+clustering.3clus[,3]<-ifelse(clustering.3clus[,3]==1,3,0)
+ClusMembership.3clus<-apply(clustering.3clus,1,function(x) sum(x))
+ClusterRes.3clus<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.3clus)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
                         by.x = "group", by.y = "group")
 
 #
@@ -2772,6 +2807,121 @@ ggplot(map_with_4clusters, aes(long, lat, group = group, fill = factor(ClusMembe
   ) +
   theme_minimal()
 
+
+###----------------------------------------------------------------------------------
+##5 cluster solution - 150S - FIML:
+
+##take out the world map
+world_map<-map_data("world")
+
+##filter to be a eu map:
+eu_countries <- c(
+  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", 
+  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", 
+  "Ireland", "Iceland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", 
+  "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia",
+  "Slovakia", "Slovenia", "Switzerland",
+  "Spain", "Sweden", "UK", "Israel",
+  "Turkey", "Lebanon", "Jordan", "Egypt", "Syria",
+  "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Moldova"
+)
+
+eu_map <- world_map %>%
+  filter(region %in% eu_countries)
+
+##add a new column called region to match the country names with the world map data country names
+ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
+  mutate(region=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czech Republic",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "UK",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ "Lithuania",
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  )) %>%
+  select(ClusMembership, region)
+
+##merge the data:
+map_with_5clusters <- eu_map %>%
+  left_join(ClusterRes.5clus.150s, by = "region")
+
+##full results: lay out on the map:
+ggplot(map_with_5clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "5-clusters Results on the Map",
+    fill = "Cluster"
+  ) +
+  theme_minimal()
+
+##make a map focusing on the dimension of self-enhancement
+map_with_5clusters_se<-map_with_5clusters %>%
+  mutate(SE_char=case_when(
+    ClusMembership == 1 | ClusMembership==5 ~ "SE_0-negative",
+    ClusMembership == 2 | ClusMembership==4 ~ "SE_0-positive",
+    ClusMembership == 3 ~ "LT: SE very negative"
+  ))
+
+#SE results: lay out on the map:
+ggplot(map_with_5clusters_se, aes(long, lat, group = group, fill = factor(SE_char))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Self-enhancement dimension",
+    fill = "SE Characteristics"
+  ) +
+  theme_minimal()
+
+
+##make a map separating cluster 2 and 4 that are both SE 0-positive
+map_with_5clusters_PositiveSE<-map_with_5clusters %>%
+  mutate(ST_con=case_when(
+    ClusMembership == 4 ~ "weak ST_Con",
+    ClusMembership == 2 ~ "strong ST_con"
+  ))
+
+#SE 0-postive results to separate into cluster 2 and 4: lay out on the map:
+ggplot(map_with_5clusters_PositiveSE, aes(long, lat, group = group, fill = factor(ST_con))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Self-Transcendence and Conservation dimension",
+    fill = "SelfTran & Conser"
+  ) +
+  theme_minimal()
+
+
+##make a map separating cluster 1,3,5 that are both SE 0-negative
+map_with_5clusters_NegativeSE<-map_with_5clusters %>%
+  mutate(ST_con=case_when(
+    ClusMembership == 1 ~ "weaker SelfTran",
+    ClusMembership == 5 ~ "stronger SelfTran",
+    ClusMembership == 3 ~ "LT: strongest ST_Con"
+  ))
+
+#SE 0-postive results to separate into cluster 2 and 4: lay out on the map:
+ggplot(map_with_5clusters_NegativeSE, aes(long, lat, group = group, fill = factor(ST_con))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Self-Transcendence and Conservation dimension",
+    fill = "SelfTran & Conser"
+  ) +
+  theme_minimal()
 
 
 #####################################################################################
