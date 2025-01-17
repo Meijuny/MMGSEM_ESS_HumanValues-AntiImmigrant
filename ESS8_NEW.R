@@ -911,18 +911,22 @@ CCPolicySupport=~c(L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L
                   c(L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3)*support3
 
 ##Constrain the first group to have the variance as 1:
-
+CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
 
 '
 
-CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1,
+CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1.wide,
                                         data = ESS8,
                                         group = "country",
                                         estimator="MLR",
                                         missing="FIML",
-                                        group.equal="loadings",
-                                        std.lv=T,
+                                        #group.equal="loadings",
+                                        #std.lv=T,
                                         bounds="wide")
+
+sink("./Sink Output/ESS8/test_syntax_widebound_FullMetric.txt")
+summary(CCPolSupport.Metric.Fit1.WideBound, fit.measures=T, standardized=T)
+sink()
 
 
 ##(full) metric Invariance Model 1 with standard bounded estimation:
@@ -4484,9 +4488,6 @@ CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
 #summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
 #sink()
 
-##listwise deletion:
-ESS8_lw<-na.omit(ESS8)
-
 ##specify the structural model:
 Str_model<-'
 CCBelief~SelfTran+Conser+SelfEnhan
@@ -4495,7 +4496,7 @@ CCPolicySupport~CCBelief+SelfTran+Conser+SelfEnhan
 '
 
 ##Model selection:
-MediationModel.Selection<-ModelSelection(dat=ESS8_lw,
+MediationModel.Selection<-ModelSelection(dat=ESS8,
                                      S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
                                      S2 = Str_model,
                                      group = "country",
@@ -4504,7 +4505,7 @@ MediationModel.Selection<-ModelSelection(dat=ESS8_lw,
                                      userStart = NULL,
                                      s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit1.Marker),
                                      max_it = 10000L,
-                                     nstarts = 100L,
+                                     nstarts = 150L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -4516,13 +4517,29 @@ MediationModel.Selection<-ModelSelection(dat=ESS8_lw,
 
 View(MediationModel.Selection$Overview)
 
+##CHull expected value for the 2-clusters solution:
+(-1311938)+(771-763)*(-1311764-(-1311938))/(779-763)
+#-1311851
+
+a<-MediationModel.Selection$Overview
+a[2,3]<--1311850
+
+#
+##plot for adjusted CHull observed
+ggplot(a, aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "Adjusted CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+
 #
 ##plot for CHull observed
 ggplot(MediationModel.Selection$Overview, aes(x=nrpar, y=LL)) +
   geom_point()+
   geom_line()+
-  labs(title = "CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  labs(title = "Original CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
   theme_minimal()
+
 #
 ##plot for CHull factor
 ggplot(MediationModel.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
@@ -4545,12 +4562,12 @@ ggplot(MediationModel.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
 
 
 ##
-#3 clusters - 50s:
-Mediation.3clus.50S<-MMGSEM(dat=ESS8,
+#4 clusters - 50s:
+Mediation.4clus.50S<-MMGSEM(dat=ESS8,
                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
                                   S2 = Str_model,
                                   group = "country",
-                                  nclus=3,
+                                  nclus=4,
                                   seed = 100,
                                   userStart = NULL,
                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit1.Marker),
@@ -4567,11 +4584,11 @@ Mediation.3clus.50S<-MMGSEM(dat=ESS8,
 
 #
 #3 clusters - 150s:
-Mediation.3clus.150S<-MMGSEM(dat=ESS8_lw,
+Mediation.4clus.150S<-MMGSEM(dat=ESS8,
                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
                             S2 = Str_model,
                             group = "country",
-                            nclus=3,
+                            nclus=4,
                             seed = 100,
                             userStart = NULL,
                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit1.Marker),
@@ -4583,39 +4600,41 @@ Mediation.3clus.150S<-MMGSEM(dat=ESS8_lw,
                             endo_group_specific = TRUE,
                             sam_method = "local",
                             meanstr = FALSE,
-                            rescaling = F)
+                            rescaling = F,
+                            missing="FIML")
 
 
 ##Clustering membership
 #
-#3-cluster solution - 50 starts
-clustering.3clus.50s<-t(apply(Mediation.3clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.3clus.50s[,2]<-ifelse(clustering.3clus.50s[,2]==1,2,0)
-clustering.3clus.50s[,3]<-ifelse(clustering.3clus.50s[,3]==1,3,0)
-ClusMembership.3clus.50s<-apply(clustering.3clus.50s,1,function(x) sum(x))
-ClusterRes.3clus.50s<-data.frame(group=c(1:23),
-                             ClusMembership=ClusMembership.3clus.50s)
+#4-cluster solution - 50 starts
+clustering.4clus.50s<-t(apply(Mediation.4clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus.50s[,2]<-ifelse(clustering.4clus.50s[,2]==1,2,0)
+clustering.4clus.50s[,3]<-ifelse(clustering.4clus.50s[,3]==1,3,0)
+clustering.4clus.50s[,4]<-ifelse(clustering.4clus.50s[,4]==1,4,0)
+ClusMembership.4clus.50s<-apply(clustering.4clus.50s,1,function(x) sum(x))
+ClusterRes.4clus.50s<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.4clus.50s)
 countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
-ClusterRes.3clus.50s<-merge(ClusterRes.3clus.50s, countries,
+ClusterRes.4clus.50s<-merge(ClusterRes.4clus.50s, countries,
                         by.x = "group", by.y = "group")
 
 
 #
-#3-cluster solution - 150 starts
-clustering.3clus.150s<-t(apply(Mediation.3clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.3clus.150s[,2]<-ifelse(clustering.3clus.150s[,2]==1,2,0)
-clustering.3clus.150s[,3]<-ifelse(clustering.3clus.150s[,3]==1,3,0)
-ClusMembership.3clus.150s<-apply(clustering.3clus.150s,1,function(x) sum(x))
-ClusterRes.3clus.150s<-data.frame(group=c(1:23),
-                                 ClusMembership=ClusMembership.3clus.150s)
+#4-cluster solution - 150 starts
+clustering.4clus.150s<-t(apply(Mediation.4clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus.150s[,2]<-ifelse(clustering.4clus.150s[,2]==1,2,0)
+clustering.4clus.150s[,3]<-ifelse(clustering.4clus.150s[,3]==1,3,0)
+clustering.4clus.150s[,4]<-ifelse(clustering.4clus.150s[,4]==1,4,0)
+ClusMembership.4clus.150s<-apply(clustering.4clus.150s,1,function(x) sum(x))
+ClusterRes.4clus.150s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.4clus.150s)
 countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
-ClusterRes.3clus.150s<-merge(ClusterRes.3clus.150s, countries,
+ClusterRes.4clus.150s<-merge(ClusterRes.4clus.150s, countries,
                             by.x = "group", by.y = "group")
-
 
 
 
