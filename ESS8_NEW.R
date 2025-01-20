@@ -4583,7 +4583,7 @@ Mediation.4clus.50S<-MMGSEM(dat=ESS8,
                             missing="FIML")
 
 #
-#3 clusters - 150s:
+#4 clusters - 150s:
 Mediation.4clus.150S<-MMGSEM(dat=ESS8,
                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
                             S2 = Str_model,
@@ -4602,6 +4602,49 @@ Mediation.4clus.150S<-MMGSEM(dat=ESS8,
                             meanstr = FALSE,
                             rescaling = F,
                             missing="FIML")
+
+
+##
+#5 clusters - 50s:
+Mediation.5clus.50S<-MMGSEM(dat=ESS8,
+                            S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
+                            S2 = Str_model,
+                            group = "country",
+                            nclus=5,
+                            seed = 100,
+                            userStart = NULL,
+                            s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit1.Marker),
+                            max_it = 10000L,
+                            nstarts = 50L,
+                            printing = FALSE,
+                            partition = "hard",
+                            endogenous_cov = TRUE,
+                            endo_group_specific = TRUE,
+                            sam_method = "local",
+                            meanstr = FALSE,
+                            rescaling = F,
+                            missing="FIML")
+
+#
+#5 clusters - 150s:
+Mediation.5clus.150S<-MMGSEM(dat=ESS8,
+                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M1.Marker),
+                             S2 = Str_model,
+                             group = "country",
+                             nclus=5,
+                             seed = 100,
+                             userStart = NULL,
+                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit1.Marker),
+                             max_it = 10000L,
+                             nstarts = 150L,
+                             printing = FALSE,
+                             partition = "hard",
+                             endogenous_cov = TRUE,
+                             endo_group_specific = TRUE,
+                             sam_method = "local",
+                             meanstr = FALSE,
+                             rescaling = F,
+                             missing="FIML")
 
 
 ##Clustering membership
@@ -4636,6 +4679,38 @@ countries<-data.frame(group=c(1:23),
 ClusterRes.4clus.150s<-merge(ClusterRes.4clus.150s, countries,
                             by.x = "group", by.y = "group")
 
+
+#
+#5-cluster solution - 50 starts
+clustering.5clus.50s<-t(apply(Mediation.5clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus.50s[,2]<-ifelse(clustering.5clus.50s[,2]==1,2,0)
+clustering.5clus.50s[,3]<-ifelse(clustering.5clus.50s[,3]==1,3,0)
+clustering.5clus.50s[,4]<-ifelse(clustering.5clus.50s[,4]==1,4,0)
+clustering.5clus.50s[,5]<-ifelse(clustering.5clus.50s[,5]==1,5,0)
+ClusMembership.5clus.50s<-apply(clustering.5clus.50s,1,function(x) sum(x))
+ClusterRes.5clus.50s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.5clus.50s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
+                            by.x = "group", by.y = "group")
+
+#
+#5-cluster solution - 150 starts
+clustering.5clus.150s<-t(apply(Mediation.5clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus.150s[,2]<-ifelse(clustering.5clus.150s[,2]==1,2,0)
+clustering.5clus.150s[,3]<-ifelse(clustering.5clus.150s[,3]==1,3,0)
+clustering.5clus.150s[,4]<-ifelse(clustering.5clus.150s[,4]==1,4,0)
+clustering.5clus.150s[,5]<-ifelse(clustering.5clus.150s[,5]==1,5,0)
+ClusMembership.5clus.150s<-apply(clustering.5clus.150s,1,function(x) sum(x))
+ClusterRes.5clus.150s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.5clus.150s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
+                            by.x = "group", by.y = "group")
 
 
 
@@ -4812,29 +4887,29 @@ sink()
 ##-------------------------------------------------------------------------------------------------------
 ##-------------------------------------------------------------------------------------------------------
 ##-------------------------------------------------------------------------------------------------------
-##3-cluster (50 random starts): 
-##!!!NEED TO REDO WITH FIML!!!
-##cluster 1: group 10,16,17,20
-##cluster 2: group 1,2,3,4,5,6,7,8,9,11,12,14,15,18,19,21,22,23
-##cluster 3: group 13
+##4-cluster (150 random starts): 
+##cluster 1: group 2,3,5,6,8,9,10,17,18,19,22,23
+##cluster 2: group 13,14
+##cluster 3: group 1,4,7,11,12,15,20,21
+##cluster 4: group 16
 
-sam_mediation_3clus_50s<-'
-CCBelief~c(a2,a2,a2,a2,a2,a2,a2,a2,a2,a1,a2,a2,a3,a2,a2,a1,a1,a2,a2,a1,a2,a2,a2)*SelfTran+
-          c(b2,b2,b2,b2,b2,b2,b2,b2,b2,b1,b2,b2,b3,b2,b2,b1,b1,b2,b2,b1,b2,b2,b2)*Conser+
-          c(c2,c2,c2,c2,c2,c2,c2,c2,c2,c1,c2,c2,c3,c2,c2,c1,c1,c2,c2,c1,c2,c2,c2)*SelfEnhan
+sam_mediation_4clus_150s<-'
+CCBelief~c(a3,a1,a1,a3,a1,a1,a3,a1,a1,a1,a3,a3,a2,a2,a3,a4,a1,a1,a1,a3,a3,a1,a1)*SelfTran+
+          c(b3,b1,b1,b3,b1,b1,b3,b1,b1,b1,b3,b3,b2,b2,b3,b4,b1,b1,b1,b3,b3,b1,b1)*Conser+
+          c(c3,c1,c1,c3,c1,c1,c3,c1,c1,c1,c3,c3,c2,c2,c3,c4,c1,c1,c1,c3,c3,c1,c1)*SelfEnhan
 
-CCPolicySupport~c(d2,d2,d2,d2,d2,d2,d2,d2,d2,d1,d2,d2,d3,d2,d2,d1,d1,d2,d2,d1,d2,d2,d2)*CCBelief+
-                c(e2,e2,e2,e2,e2,e2,e2,e2,e2,e1,e2,e2,e3,e2,e2,e1,e1,e2,e2,e1,e2,e2,e2)*SelfTran+
-                c(f2,f2,f2,f2,f2,f2,f2,f2,f2,f1,f2,f2,f3,f2,f2,f1,f1,f2,f2,f1,f2,f2,f2)*Conser+
-                c(g2,g2,g2,g2,g2,g2,g2,g2,g2,g1,g2,g2,g3,g2,g2,g1,g1,g2,g2,g1,g2,g2,g2)*SelfEnhan
+CCPolicySupport~c(d3,d1,d1,d3,d1,d1,d3,d1,d1,d1,d3,d3,d2,d2,d3,d4,d1,d1,d1,d3,d3,d1,d1)*CCBelief+
+                c(e3,e1,e1,e3,e1,e1,e3,e1,e1,e1,e3,e3,e2,e2,e3,e4,e1,e1,e1,e3,e3,e1,e1)*SelfTran+
+                c(f3,f1,f1,f3,f1,f1,f3,f1,f1,f1,f3,f3,f2,f2,f3,f4,f1,f1,f1,f3,f3,f1,f1)*Conser+
+                c(g3,g1,g1,g3,g1,g1,g3,g1,g1,g1,g3,g3,g2,g2,g3,g4,g1,g1,g1,g3,g3,g1,g1)*SelfEnhan
 '
 
-Mediation.SAM.3clus.50s<-cfa(model = sam_mediation_3clus_50s,
+Mediation.SAM.4clus.150s<-cfa(model = sam_mediation_4clus_150s,
                             sample.cov = Var_eta,
                             sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/Mediation_SAM_3clus_50s.txt")
-summary(Mediation.SAM.3clus.50s, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/Mediation_SAM_4clus_150s.txt")
+summary(Mediation.SAM.4clus.150s, fit.measures=T, standardized=T)
 sink()
 
 ##-------------------------------------------------------------------------------------------------------
@@ -4857,7 +4932,7 @@ HVDirect.param<-FreeSAMparam %>%
   ))
 
 
-HVDirect.param<-merge(HVDirect.param, ClusterRes.3clus.150s, 
+HVDirect.param<-merge(HVDirect.param, ClusterRes.4clus.150s, 
                          by.x = "group", by.y = "group")
 
 HVDirect.param$country <- fct_reorder(HVDirect.param$country, 
@@ -4872,7 +4947,7 @@ ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
   facet_wrap(~Human.Values, scales = "free_x")+
-  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
   labs(title = "SAM with clustering results - Direct Effects of Human Values on CC Policy Support",
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
@@ -4885,7 +4960,7 @@ CCBelief_regPar<-FreeSAMparam %>%
   filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
   select(lhs, rhs, group, est, ci.lower, ci.upper)
 
-CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.3clus.150s, 
+CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.4clus.150s, 
                          by.x = "group", by.y = "group")
 
 CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
@@ -4921,7 +4996,7 @@ HVIndirect.par<-HVIndirect.par %>%
     human_values=="SEindirect"~"Self-Enhancement"
   ))
 
-HVIndirect.par<-merge(HVIndirect.par, ClusterRes.3clus.150s, 
+HVIndirect.par<-merge(HVIndirect.par, ClusterRes.4clus.150s, 
                       by.x = "group", by.y = "group")
 
 HVIndirect.par$country <- fct_reorder(HVIndirect.par$country, 
@@ -4930,6 +5005,203 @@ HVIndirect.par$country <- fct_reorder(HVIndirect.par$country,
 vline_data <- data.frame(
   human_values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
   xintercept = c(-0.1, -0.4, 0.5)                             # Line positions
+)
+
+ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~human_values, scales = "free_x")+
+  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM Indirect Effects of Human Values on CC Policy Support via CCBelief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+
+##-------------------------------------------------------------------------------------------------------
+####3D plot
+#
+##first extract all the estimate:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM)
+
+##3D plot for the direct effects of HV:
+HVDirect_reg_param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs,rhs,group,est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+
+HVDirect_reg_param<-merge(HVDirect_reg_param, ClusterRes.4clus.150s, 
+                         by.x = "group", by.y = "group")
+
+HVDirect_4clus_3D<-plot_ly(HVDirect_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                               type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 4 clusters - Direct effect of Human Values on CCPolicy after controlling for CCBelief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+htmlwidgets::saveWidget(as_widget(HVDirect_4clus_3D), "HVDirect_4clus_3D.html")
+
+
+##3D plot for the indirect effect of HV:
+HVIndirect.RegPar<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.RegPar$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.RegPar$lhs))
+
+HVIndirect.RegPar$human_values <- gsub("_g.*", "", HVIndirect.RegPar$lhs)
+
+HVIndirect.RegPar<-HVIndirect.RegPar %>%
+  select(human_values, group, est) %>%
+  pivot_wider(names_from = human_values, values_from = est) %>%
+  rename(SelfTran=STindirect,
+         Conser=ConIndirect,
+         SelfEnhan=SEindirect)
+
+HVIndirect.RegPar<-merge(HVIndirect.RegPar, ClusterRes.4clus.150s, 
+                          by.x = "group", by.y = "group")
+
+HVIndirect_4clus_3D<-plot_ly(HVIndirect.RegPar, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                           type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 4 clusters - Indirect effect of Human Values on CCPolicy through CCBelief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(HVIndirect_4clus_3D), "HVIndirect_4clus_3D.html")
+
+
+
+
+###Once we have the factor covariance matrix from step 1
+##We can estimate the structural parameter for different cluster solution from now on:
+##
+##-------------------------------------------------------------------------------------------------------
+##-------------------------------------------------------------------------------------------------------
+##-------------------------------------------------------------------------------------------------------
+##5-cluster (150 random starts): 
+##Break the 4 cluster solution - cluster 3 into 2 clusters (Clus 1 and clus 4 in current solution)
+##put group 20 into the big group
+##cluster 1: group 1,4,7,15
+##cluster 2: group 13,14
+##cluster 3: group 2,3,5,6,8,9,10,17,18,19,20,22,23
+##cluster 4: group 11,12,21
+##cluster 5: group 16
+
+sam_mediation_5clus_150s<-'
+CCBelief~c(a1,a3,a3,a1,a3,a3,a1,a3,a3,a3,a4,a4,a2,a2,a1,a5,a3,a3,a3,a3,a4,a3,a3)*SelfTran+
+          c(b1,b3,b3,b1,b3,b3,b1,b3,b3,b3,b4,b4,b2,b2,b1,b5,b3,b3,b3,b3,b4,b3,b3)*Conser+
+          c(c1,c3,c3,c1,c3,c3,c1,c3,c3,c3,c4,c4,c2,c2,c1,c5,c3,c3,c3,c3,c4,c3,c3)*SelfEnhan
+
+CCPolicySupport~c(d1,d3,d3,d1,d3,d3,d1,d3,d3,d3,d4,d4,d2,d2,d1,d5,d3,d3,d3,d3,d4,d3,d3)*CCBelief+
+                c(e1,e3,e3,e1,e3,e3,e1,e3,e3,e3,e4,e4,e2,e2,e1,e5,e3,e3,e3,e3,e4,e3,e3)*SelfTran+
+                c(f1,f3,f3,f1,f3,f3,f1,f3,f3,f3,f4,f4,f2,f2,f1,f5,f3,f3,f3,f3,f4,f3,f3)*Conser+
+                c(g1,g3,g3,g1,g3,g3,g1,g3,g3,g3,g4,g4,g2,g2,g1,g5,g3,g3,g3,g3,g4,g3,g3)*SelfEnhan
+'
+
+Mediation.SAM.5clus.150s<-cfa(model = sam_mediation_5clus_150s,
+                              sample.cov = Var_eta,
+                              sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/Mediation_SAM_5clus_150s.txt")
+summary(Mediation.SAM.5clus.150s, fit.measures=T, standardized=T)
+sink()
+
+##-------------------------------------------------------------------------------------------------------
+####facet plotting
+#
+##first extract all the estimate:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM)
+
+
+##Facet plot for the direct effect of the 3 human values on CCPolicySupport
+#
+#make a table with direct effect of the 3 human values on CCPolicySupport
+HVDirect.param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+HVDirect.param<-merge(HVDirect.param, ClusterRes.5clus.150s, 
+                      by.x = "group", by.y = "group")
+
+HVDirect.param$country <- fct_reorder(HVDirect.param$country, 
+                                      HVDirect.param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.12, 0.12)                             # Line positions
+)
+
+ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM - Direct Effects of Human Values on CC Policy Support after controlling for CC Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for only the effect of CCBelief on CCPolicySupport
+CCBelief_regPar<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.5clus.150s, 
+                       by.x = "group", by.y = "group")
+
+CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
+                                       CCBelief_regPar$ClusMembership)
+
+ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  geom_vline(xintercept = c(0.5,0.75), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for the indirect effect of the 3 human values on CCPolicySupport VIA CCBelief
+HVIndirect.par<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.par$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.par$lhs))
+
+HVIndirect.par<-HVIndirect.par %>%
+  select(lhs, group, est, ci.lower, ci.upper)
+
+HVIndirect.par$human_values <- gsub("_g.*", "", HVIndirect.par$lhs)
+
+HVIndirect.par<-HVIndirect.par %>%
+  mutate(human_values=case_when(
+    human_values=="STindirect"~"Self-Transcendence",
+    human_values=="ConIndirect"~"Conservation",
+    human_values=="SEindirect"~"Self-Enhancement"
+  ))
+
+HVIndirect.par<-merge(HVIndirect.par, ClusterRes.5clus.150s, 
+                      by.x = "group", by.y = "group")
+
+HVIndirect.par$country <- fct_reorder(HVIndirect.par$country, 
+                                      HVIndirect.par$ClusMembership)
+
+vline_data <- data.frame(
+  human_values = c("Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(-0.13, 0.20)                             # Line positions
 )
 
 ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
@@ -4957,18 +5229,18 @@ HVDirect_reg_param<-FreeSAMparam %>%
   pivot_wider(names_from = rhs, values_from = est)
 
 
-HVDirect_reg_param<-merge(HVDirect_reg_param, ClusterRes.3clus.150s, 
-                         by.x = "group", by.y = "group")
+HVDirect_reg_param<-merge(HVDirect_reg_param, ClusterRes.5clus.150s, 
+                          by.x = "group", by.y = "group")
 
-HVDirect_3clus_3D<-plot_ly(HVDirect_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
-                               type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM 3 clusters - Direct effect of Human Values",
+HVDirect_5clus_3D<-plot_ly(HVDirect_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                           type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 5 clusters - Direct effect of Human Values on CCPolicy after controlling for CCBelief",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
 
-#htmlwidgets::saveWidget(as_widget(HVDirect_3clus_3D), "HVDirect_3clus_3D.html")
+htmlwidgets::saveWidget(as_widget(HVDirect_5clus_3D), "HVDirect_5clus_3D.html")
 
 
 ##3D plot for the indirect effect of HV:
@@ -4986,14 +5258,115 @@ HVIndirect.RegPar<-HVIndirect.RegPar %>%
          Conser=ConIndirect,
          SelfEnhan=SEindirect)
 
-HVIndirect.RegPar<-merge(HVIndirect.RegPar, ClusterRes.3clus.150s, 
-                          by.x = "group", by.y = "group")
+HVIndirect.RegPar<-merge(HVIndirect.RegPar, ClusterRes.5clus.150s, 
+                         by.x = "group", by.y = "group")
 
-HVIndirect_3clus_3D<-plot_ly(HVIndirect.RegPar, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
-                           type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM 3 clusters - Indirect effect of Human Values",
+HVIndirect_5clus_3D<-plot_ly(HVIndirect.RegPar, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                             type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 5 clusters - Indirect effect of Human Values on CCPolicy through CCBelief",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-#htmlwidgets::saveWidget(as_widget(HVIndirect_3clus_3D), "HVIndirect_3clus_3D")
+htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_3D), "HVIndirect_5clus_3D.html")
+
+
+##-------------------------------------------------------------------------------------------------------
+####3D plot for only Cluster 1 and Cluster 4
+#
+##first extract all the estimate:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM)
+
+##3D plot for the direct effects of HV:
+HVDirect_reg_param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs,rhs,group,est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+
+HVDirect_reg_param<-merge(HVDirect_reg_param, ClusterRes.5clus.150s, 
+                          by.x = "group", by.y = "group")
+
+HVDirect_Clus1_Clus4<-HVDirect_reg_param %>%
+  filter(ClusMembership==1 | ClusMembership == 4)
+
+HVDirect_5Clus_Clus1_Clus4_3D<-plot_ly(HVDirect_Clus1_Clus4, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                           type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Clus1 & Clus4 - Direct effect of Human Values on CCPolicy after controlling for CCBelief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+htmlwidgets::saveWidget(as_widget(HVDirect_5Clus_Clus1_Clus4_3D), "HVDirect_5Clus_Clus1_Clus4_3D.html")
+
+
+##3D plot for the indirect effect of HV:
+HVIndirect.RegPar<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.RegPar$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.RegPar$lhs))
+
+HVIndirect.RegPar$human_values <- gsub("_g.*", "", HVIndirect.RegPar$lhs)
+
+HVIndirect.RegPar<-HVIndirect.RegPar %>%
+  select(human_values, group, est) %>%
+  pivot_wider(names_from = human_values, values_from = est) %>%
+  rename(SelfTran=STindirect,
+         Conser=ConIndirect,
+         SelfEnhan=SEindirect)
+
+HVIndirect.RegPar<-merge(HVIndirect.RegPar, ClusterRes.5clus.150s, 
+                         by.x = "group", by.y = "group")
+
+HVIndirect.RegPar.Clus1Clus4<-HVIndirect.RegPar %>%
+  filter(ClusMembership==1 | ClusMembership ==4)
+
+HVIndirect_5clus_Clus1_Clus4_3D<-plot_ly(HVIndirect.RegPar.Clus1Clus4, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                             type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 5 clusters - Indirect effect of Human Values on CCPolicy through CCBelief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_Clus1_Clus4_3D), "HVIndirect_5clus_Clus1_Clus4_3D.html")
+
+#####################################################################################
+################ Mediation: Simultaneous MMGSEM estimation ##########################
+#####################################################################################
+
+
+##5-cluster solution:
+RegSEM_5clus<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+CCPolicySupport=~support3+support1+support2
+
+CCBelief~c(a1,a3,a3,a1,a3,a3,a1,a3,a3,a3,a4,a4,a2,a2,a1,a5,a3,a3,a3,a3,a4,a3,a3)*SelfTran+
+          c(b1,b3,b3,b1,b3,b3,b1,b3,b3,b3,b4,b4,b2,b2,b1,b5,b3,b3,b3,b3,b4,b3,b3)*Conser+
+          c(c1,c3,c3,c1,c3,c3,c1,c3,c3,c3,c4,c4,c2,c2,c1,c5,c3,c3,c3,c3,c4,c3,c3)*SelfEnhan
+
+CCPolicySupport~c(d1,d3,d3,d1,d3,d3,d1,d3,d3,d3,d4,d4,d2,d2,d1,d5,d3,d3,d3,d3,d4,d3,d3)*CCBelief+
+                c(e1,e3,e3,e1,e3,e3,e1,e3,e3,e3,e4,e4,e2,e2,e1,e5,e3,e3,e3,e3,e4,e3,e3)*SelfTran+
+                c(f1,f3,f3,f1,f3,f3,f1,f3,f3,f3,f4,f4,f2,f2,f1,f5,f3,f3,f3,f3,f4,f3,f3)*Conser+
+                c(g1,g3,g3,g1,g3,g3,g1,g3,g3,g3,g4,g4,g2,g2,g1,g5,g3,g3,g3,g3,g4,g3,g3)*SelfEnhan
+'
+
+RegSEM.Mediation.5Clus<-cfa(model = RegSEM_5clus,
+                                             data = ESS8,
+                                             group = "country",
+                                             estimator="MLR",
+                                             missing="FIML",
+                                             group.equal="loadings",
+                                             group.partial=c("SelfEnhan=~SE3"))
+
+sink("./Sink Output/ESS8/Mediation_RegMGSEM_5clus.txt")
+summary(RegSEM.Mediation.5Clus, fit.measures=T, standardized=T)
+sink()
