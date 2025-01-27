@@ -18,6 +18,7 @@ library(mmgsem)
 ###################################################################################
 ####################### Data Management ###########################################
 ###################################################################################
+
 ##Read the data in:
 ESS8<-read.csv("./ESS8.csv")
 
@@ -862,8 +863,17 @@ sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1.txt")
 summary(CCPolSupport.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
+
+##print the modification indices
+sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_MI.txt")
+options(max.print = 99999)
+lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
+sink()
+
 ##request modification indices:
 CCPolSupport.MI.Metric.M1<-lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
+
+
 
 Chi2Diff.MI.M1<-CCPolSupport.MI.Metric.M1$uni
 Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
@@ -887,32 +897,14 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
 
 
 ##(full) metric Invariance Model 1 with wide bounded estimation:
-CCPolSupport.Metric.M1<-'
-CCPolicySupport=~support1+support2+support3
-'
-
-CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1,
-                              data = ESS8,
-                              group = "country",
-                              estimator="MLR",
-                              missing="FIML",
-                              group.equal="loadings",
-                              std.lv=T,
-                              bounds="wide")
-
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_WideBound.txt")
-summary(CCPolSupport.Metric.Fit1.WideBound, fit.measures=T, standardized=T)
-sink()
-
 CCPolSupport.Metric.M1.wide<-'
 ##constrain the loadings to be equal across group
-CCPolicySupport=~c(L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1,L1)*support1+
-                  c(L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2,L2)*support2+
-                  c(L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3,L3)*support3
+CCPolicySupport=~L1*NA*support1+
+                  L2*support2+
+                  L3*support3
 
 ##Constrain the first group to have the variance as 1:
 CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
-
 '
 
 CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1.wide,
@@ -920,13 +912,42 @@ CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1.wide,
                                         group = "country",
                                         estimator="MLR",
                                         missing="FIML",
-                                        #group.equal="loadings",
-                                        #std.lv=T,
+                                        group.equal="loadings",
                                         bounds="wide")
 
-sink("./Sink Output/ESS8/test_syntax_widebound_FullMetric.txt")
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_WideBound.txt")
 summary(CCPolSupport.Metric.Fit1.WideBound, fit.measures=T, standardized=T)
 sink()
+
+
+##print the modification indices
+sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_WideBound_MI.txt")
+options(max.print = 99999)
+lavTestScore(CCPolSupport.Metric.Fit1.WideBound, epc = T)
+sink()
+
+##request modification indices:
+CCPolSupport.MI.Metric.M1.wide<-lavTestScore(CCPolSupport.Metric.Fit1.WideBound, epc = T)
+
+Chi2Diff.MI.M1<-CCPolSupport.MI.Metric.M1$uni
+Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1<-CCPolSupport.MI.Metric.M1$epc
+EPC.MI.M1<-EPC.MI.M1 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1<-merge(EPC.MI.M1, Chi2Diff.MI.M1,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
 
 
 ##(full) metric Invariance Model 1 with standard bounded estimation:
@@ -1019,6 +1040,7 @@ sink("./Sink Output/ESS8/CCPolicySupport_Support2Marker_FullMetric.txt")
 summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
 sink()
 
+
 ##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
 ##no bound
 ##cannot converge
@@ -1076,6 +1098,30 @@ sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_StandBound.txt")
 summary(CCPolSupport.Metric.Fit2.Marker.StandBound, fit.measures=T, standardized=T)
 sink()
 
+##Partial with standardized factor variance approach:
+##wide bound
+CCPolSupport.Metric.M2.wide<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*NA*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
+
+##Constrain the first group to have the variance as 1:
+CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
+'
+
+CCPolSupport.Metric.Fit2.WideBound<-cfa(model = CCPolSupport.Metric.M2.wide,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        bounds="wide")
+
+sink("./Sink Output/ESS8/test_syntax_widebound_PartialMetric.txt")
+summary(CCPolSupport.Metric.Fit2.WideBound, fit.measures=T, standardized=T)
+sink()
+
+a<-parTable(CCPolSupport.Metric.Fit2.WideBound)
 
 
 #####################################################################################
@@ -5367,6 +5413,10 @@ RegSEM.Mediation.5Clus<-cfa(model = RegSEM_5clus,
                                              group.equal="loadings",
                                              group.partial=c("SelfEnhan=~SE3"))
 
+sink("./Sink Output/ESS8/JustFOrRun.txt")
+summary(RegSEM.Mediation.5Clus, fit.measures=T, standardized=T)
+sink()
+
 sink("./Sink Output/ESS8/Mediation_RegMGSEM_5clus.txt")
 summary(RegSEM.Mediation.5Clus, fit.measures=T, standardized=T)
 sink()
@@ -5440,3 +5490,323 @@ ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(Clus
     fill = "Cluster"
   ) +
   theme_minimal()
+
+
+
+
+#####################################################################################
+################## Single Indicator Approach for All Models #########################
+#####################################################################################
+
+
+###------------------------------------------------------------------------------------
+##Start with the Human Values model:
+#
+##Original model with cross-loadings and allow covariance between factors are as below:
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+
+##Change to a model with cross-loadings but WITHOUT covariance between factors:
+NoOpen.HV.Metric.M2.SI<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##constrain the factor covariance to be 0
+SelfTran~~0*Conser
+SelfTran~~0*SelfEnhan
+Conser~~0*SelfEnhan
+'
+
+NoOpen.HV.Metric.Fit2.SI<-cfa(model = NoOpen.HV.Metric.M2.SI,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+
+sink("./Sink Output/ESS8/SingleInd_HV_Metric_fit2.txt")
+summary(NoOpen.HV.Metric.Fit2.SI, fit.measures=T, standardized=T)
+sink()
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.SI, what = "est")
+Phi_HV<-lapply(EST_HV, "[[", "psi")
+lambda_HV<-lapply(EST_HV, "[[","lambda")
+theta_HV<-lapply(EST_HV, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_HV_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_HV[[g]]<-solve(solve(Phi_HV[[g]])+t(lambda_HV[[g]]) %*% solve(theta_HV[[g]]) %*% lambda_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(theta_HV[[g]])
+  
+  ##factor scores
+  y_HV_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_HV[[g]])]
+  FactorScores_HV[[g]]<-AR_Matrix_HV[[g]] %*% t(y_HV_items[[g]])
+  }
+
+##compute the Var(f) in equation 2.6:
+##compute the posterior Varf in equation 2.3
+Var_f_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+ModelImplied_Sigma_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Var_f_HV[[g]]<-AR_Matrix_HV[[g]] %*% lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]]) %*% t(AR_Matrix_HV[[g]]) + AR_Matrix_HV[[g]] %*% theta_HV[[g]] %*% t(AR_Matrix_HV[[g]])
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_HV[[g]]<-lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]])+theta_HV[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_HV[[g]]<-Phi_HV[[g]]-t(Phi_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(ModelImplied_Sigma_HV[[g]]) %*% lambda_HV[[g]] %*% Phi_HV[[g]]
+}
+
+##compute the true factor variance 
+TruePhi_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_HV[[g]]<-Var_f_HV[[g]]+Posterior_Varf_HV[[g]]
+}
+
+##compute the ρ:
+Rho_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_HV[[g]]<-(AR_Matrix_HV[[g]] %*% lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]]) %*% t(AR_Matrix_HV[[g]])) %*% solve(Var_f_HV[[g]])
+  
+  ##extract the diagonal matrix and set the off-diagonla to 0:
+  Rho_HV[[g]]<-diag(diag(Rho_HV[[g]]))
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_HV[[g]]<-TruePhi_HV[[g]] %*% (1-Rho_HV[[g]]) %*% solve(Rho_HV[[g]])
+  
+}
+
+##Compute the covariance matrix for the factor scores:
+Cov_fg_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Cov_fg_HV[[g]]<-cov(t(FactorScores_HV[[g]]), use = "pairwise.complete.obs")
+}
+
+
+
+
+###------------------------------------------------------------------------------------
+##Repeat the same steps with the Climate Change Belief:
+##Original (Full) Metric Model 1: 
+##Can be used directly for the single indicator approach
+CCBelief.Metric.M1.Marker<-'
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
+                                 data = ESS8,
+                                 group = "country",
+                                 estimator="MLR",
+                                 missing="FIML",
+                                 group.equal="loadings")
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_CCBelief<-lavInspect(CCBelief.Metric.Fit1.Marker, what = "est")
+Phi_CCBelief<-lapply(EST_CCBelief, "[[", "psi")
+lambda_CCBelief<-lapply(EST_CCBelief, "[[","lambda")
+theta_CCBelief<-lapply(EST_CCBelief, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_CCBelief_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_CCBelief[[g]]<-solve(solve(Phi_CCBelief[[g]])+t(lambda_CCBelief[[g]]) %*% solve(theta_CCBelief[[g]]) %*% lambda_CCBelief[[g]]) %*% t(lambda_CCBelief[[g]]) %*% solve(theta_CCBelief[[g]])
+  
+  ##factor scores
+  y_CCBelief_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_CCBelief[[g]])]
+  FactorScores_CCBelief[[g]]<-AR_Matrix_CCBelief[[g]] %*% t(y_CCBelief_items[[g]])
+}
+
+##compute the Var(f) in equation 2.6:
+##compute the posterior Varf in equation 2.3
+Var_f_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+ModelImplied_Sigma_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Var_f_CCBelief[[g]]<-AR_Matrix_CCBelief[[g]] %*% lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]] %*% t(lambda_CCBelief[[g]]) %*% t(AR_Matrix_CCBelief[[g]]) + AR_Matrix_CCBelief[[g]] %*% theta_CCBelief[[g]] %*% t(AR_Matrix_CCBelief[[g]])
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_CCBelief[[g]]<-lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]] %*% t(lambda_CCBelief[[g]])+theta_CCBelief[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_CCBelief[[g]]<-Phi_CCBelief[[g]]-t(Phi_CCBelief[[g]]) %*% t(lambda_CCBelief[[g]]) %*% solve(ModelImplied_Sigma_CCBelief[[g]]) %*% lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]]
+}
+
+##compute the true factor variance 
+TruePhi_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_CCBelief[[g]]<-Var_f_CCBelief[[g]]+Posterior_Varf_CCBelief[[g]]
+}
+
+##compute the ρ:
+Rho_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_CCBelief[[g]]<-(AR_Matrix_CCBelief[[g]] %*% lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]] %*% t(lambda_CCBelief[[g]]) %*% t(AR_Matrix_CCBelief[[g]])) %*% solve(Var_f_CCBelief[[g]])
+  
+  ##extract the diagonal matrix and set the off-diagonla to 0:
+  #Rho_CCBelief[[g]]<-diag(diag(Rho_CCBelief[[g]]))
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_CCBelief[[g]]<-TruePhi_CCBelief[[g]] %*% (1-Rho_CCBelief[[g]]) %*% solve(Rho_CCBelief[[g]])
+  
+}
+
+##Compute the covariance matrix for the factor scores:
+Cov_fg_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Cov_fg_CCBelief[[g]]<-cov(t(FactorScores_CCBelief[[g]]), use = "pairwise.complete.obs")
+}
+
+
+
+###------------------------------------------------------------------------------------
+##At this point, we need to put each pair together in the same matrix:
+#Rho_HV, Rho_CCBelief --> Rho_g
+#Theta_g_HV, Theta_g_CCbelief --> Theta_g
+#Cov_fg_HV, Cov_fg_CCBelief --> Cov_fg
+
+Rho_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Theta_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Cov_fg<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  ##first focus on Rho_g
+  Rho_g[[g]]<-lav_matrix_bdiag(Rho_HV[[g]], Rho_CCBelief[[g]])
+  colnames(Rho_g[[g]])<-rownames(Rho_g[[g]])<-c(rownames(Cov_fg_HV[[g]]), rownames(Cov_fg_CCBelief[[g]]))
+  
+  ##then focus on Theta_g
+  Theta_g[[g]]<-lav_matrix_bdiag(Theta_g_HV[[g]], Theta_g_CCBelief[[g]])
+  colnames(Theta_g[[g]])<-rownames(Theta_g[[g]])<-c(rownames(Cov_fg_HV[[g]]), rownames(Cov_fg_CCBelief[[g]]))
+  
+  ##lastly focus on Cov_fg
+  Cov_fg[[g]]<-lav_matrix_bdiag(Cov_fg_HV[[g]], Cov_fg_CCBelief[[g]])
+  colnames(Cov_fg[[g]])<-rownames(Cov_fg[[g]])<-c(rownames(Cov_fg_HV[[g]]), rownames(Cov_fg_CCBelief[[g]]))
+}
+
+##compute the factor covariance matrix that could be used to estimate the structural model through lavaan
+Phi_BasicModel_Step2<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Phi_BasicModel_Step2[[g]]<-solve(Rho_g[[g]]) %*% (Cov_fg[[g]]-Theta_g[[g]]) %*% solve(t(Rho_g[[g]]))
+}
+
+
+
+
+
+
+
+##testing with lavaan:
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS8,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F) ##to extract the nobs per country
+
+
+SI_str_model_5clus.150s.FIML<-'
+CCBelief~c(a1,a4,a1,a5,a1,a4,a2,a2,a2,a2,a1,a4,a5,a2,a5,a3,a2,a2,a1,a1,a4,a2,a4)*SelfTran+
+          c(b1,b4,b1,b5,b1,b4,b2,b2,b2,b2,b1,b4,b5,b2,b5,b3,b2,b2,b1,b1,b4,b2,b4)*Conser+
+          c(c1,c4,c1,c5,c1,c4,c2,c2,c2,c2,c1,c4,c5,c2,c5,c3,c2,c2,c1,c1,c4,c2,c4)*SelfEnhan
+'
+
+BasicModel.SI.5clus.150s.FIML<-cfa(model = SI_str_model_5clus.150s.FIML,
+                                    sample.cov = Phi_BasicModel_Step2,
+                                    sample.nobs = lavInspect(fake, "nobs"))
+
+
+
+sam_str_model_5clus.150s.FIML<-'
+CCBelief~c(a1,a4,a1,a5,a1,a4,a2,a2,a2,a2,a1,a4,a5,a2,a5,a3,a2,a2,a1,a1,a4,a2,a4)*SelfTran+
+          c(b1,b4,b1,b5,b1,b4,b2,b2,b2,b2,b1,b4,b5,b2,b5,b3,b2,b2,b1,b1,b4,b2,b4)*Conser+
+          c(c1,c4,c1,c5,c1,c4,c2,c2,c2,c2,c1,c4,c5,c2,c5,c3,c2,c2,c1,c1,c4,c2,c4)*SelfEnhan
+'
+
+BasicModel.SAM.5clus.150s.FIML<-cfa(model = sam_str_model_5clus.150s.FIML,
+                                    sample.cov = Var_eta,
+                                    sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_SAM_5clus_150s_FIML.txt")
+summary(BasicModel.SAM.5clus.150s.FIML, fit.measures=T, standardized=T)
+sink()
+
