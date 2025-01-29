@@ -1447,7 +1447,7 @@ CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
 #sink()
 
 ##listwise deletion:
-ESS8_lw<-na.omit(ESS8)
+#ESS8_lw<-na.omit(ESS8)
 
 ##Structural model
 Str_model<-'
@@ -5495,7 +5495,7 @@ ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(Clus
 
 
 #####################################################################################
-################## Single Indicator Approach for All Models #########################
+########## Single Indicator Approach for Basic Model: CCBelief ######################
 #####################################################################################
 
 
@@ -5519,35 +5519,6 @@ NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
                                   missing="FIML",
                                   group.equal="loadings",
                                   group.partial=c("SelfEnhan=~SE3"))
-
-
-##Change to a model with cross-loadings but WITHOUT covariance between factors:
-NoOpen.HV.Metric.M2.SI<-'
-SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
-Conser=~C2+C1+C3+C4+C5+C6+SE4
-SelfEnhan=~SE2+SE1+SE3+SE4+C1
-
-##Add Error Term Correlation
-C5~~C6
-
-##constrain the factor covariance to be 0
-SelfTran~~0*Conser
-SelfTran~~0*SelfEnhan
-Conser~~0*SelfEnhan
-'
-
-NoOpen.HV.Metric.Fit2.SI<-cfa(model = NoOpen.HV.Metric.M2.SI,
-                                  data = ESS8,
-                                  group = "country",
-                                  estimator="MLR",
-                                  missing="FIML",
-                                  group.equal="loadings",
-                                  group.partial=c("SelfEnhan=~SE3"))
-
-
-sink("./Sink Output/ESS8/SingleInd_HV_Metric_fit2.txt")
-summary(NoOpen.HV.Metric.Fit2.SI, fit.measures=T, standardized=T)
-sink()
 
 ##Extract for each group:
 #the factor covariance matrix Φ 
@@ -5763,50 +5734,8 @@ for(g in 1:length(unique(ESS8$country))){
 
 
 
-
-
-
-##testing with lavaan:
-fake_model<-'
-SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
-Conser=~C2+C1+C3+C4+C5+C6+SE4
-SelfEnhan=~SE2+SE1+SE3+SE4+C1
-
-##Add Error Term Correlation
-C5~~C6
-
-CCBelief=~ImpactBelief+TrendBelief+AttriBelief
-'
-
-fake<-cfa(model = fake_model,
-          data = ESS8,
-          group = "country",
-          estimator="MLR",
-          missing="FIML",
-          do.fit=F) ##to extract the nobs per country
-
-
-SI_str_model_5clus.150s.FIML<-'
-CCBelief~c(a1,a4,a1,a5,a1,a4,a2,a2,a2,a2,a1,a4,a5,a2,a5,a3,a2,a2,a1,a1,a4,a2,a4)*SelfTran+
-          c(b1,b4,b1,b5,b1,b4,b2,b2,b2,b2,b1,b4,b5,b2,b5,b3,b2,b2,b1,b1,b4,b2,b4)*Conser+
-          c(c1,c4,c1,c5,c1,c4,c2,c2,c2,c2,c1,c4,c5,c2,c5,c3,c2,c2,c1,c1,c4,c2,c4)*SelfEnhan
-'
-
-BasicModel.SI.5clus.150s.FIML<-cfa(model = SI_str_model_5clus.150s.FIML,
-                                    sample.cov = Phi_BasicModel_Step2,
-                                    sample.nobs = lavInspect(fake, "nobs"))
-
-
-
-SI_str_model_free<-'
-CCBelief~SelfTran+Conser+SelfEnhan
-'
-
-BasicModel.SI.free<-cfa(model = SI_str_model_free,
-                                   sample.cov = Phi_BasicModel_Step2,
-                                   sample.nobs = lavInspect(fake, "nobs"))
-
-##take out the 16th group: LT group 16:
+###----------------------------------------------------------------------------------------------------------
+##Take out LT as the sample covariance matrix is not positive-definite
 ESS_noLT<-ESS8 %>%
   filter(country != "LT")
 
@@ -5832,14 +5761,18 @@ fake<-cfa(model = fake_model,
           missing="FIML",
           do.fit=F) ##to extract the nobs per country
 
-SI_str_model_free<-'
-CCBelief~SelfTran+Conser+SelfEnhan
+
+##run the Structural model without LT
+SI_str_model_5clus.150s.FIML<-'
+CCBelief~c(a1,a4,a1,a5,a1,a4,a2,a2,a2,a2,a1,a4,a5,a2,a5,a2,a2,a1,a1,a4,a2,a4)*SelfTran+
+          c(b1,b4,b1,b5,b1,b4,b2,b2,b2,b2,b1,b4,b5,b2,b5,b2,b2,b1,b1,b4,b2,b4)*Conser+
+          c(c1,c4,c1,c5,c1,c4,c2,c2,c2,c2,c1,c4,c5,c2,c5,c2,c2,c1,c1,c4,c2,c4)*SelfEnhan
 '
 
-BasicModel.SI.free<-cfa(model = SI_str_model_free,
-                        sample.cov = NEWPhi_BasicModel_Step2,
-                        sample.nobs = lavInspect(fake, "nobs"))
+BasicModel.SI.5clus.150s.FIML<-cfa(model = SI_str_model_5clus.150s.FIML,
+                                    sample.cov = NEWPhi_BasicModel_Step2,
+                                    sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/SingleIndicator_free_noLT.txt")
-summary(BasicModel.SI.free, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/BasicModel_SingleIndicator_5clus_noLT.txt")
+summary(BasicModel.SI.5clus.150s.FIML, fit.measures=T, standardized=T)
 sink()
