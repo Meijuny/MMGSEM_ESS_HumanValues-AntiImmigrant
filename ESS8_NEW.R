@@ -865,15 +865,13 @@ sink()
 
 
 ##print the modification indices
-sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_MI.txt")
-options(max.print = 99999)
-lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
-sink()
+#sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_MI.txt")
+#options(max.print = 99999)
+#lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
+#sink()
 
 ##request modification indices:
 CCPolSupport.MI.Metric.M1<-lavTestScore(CCPolSupport.Metric.Fit1, epc = T)
-
-
 
 Chi2Diff.MI.M1<-CCPolSupport.MI.Metric.M1$uni
 Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
@@ -921,13 +919,104 @@ sink()
 
 
 ##print the modification indices
-sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_WideBound_MI.txt")
-options(max.print = 99999)
-lavTestScore(CCPolSupport.Metric.Fit1.WideBound, epc = T)
-sink()
+#sink("./Sink Output/ESS8/CCPolicySupport_FullMetric_WideBound_MI.txt")
+#options(max.print = 99999)
+#lavTestScore(CCPolSupport.Metric.Fit1.WideBound, epc = T)
+#sink()
 
 ##request modification indices:
 CCPolSupport.MI.Metric.M1.wide<-lavTestScore(CCPolSupport.Metric.Fit1.WideBound, epc = T)
+
+Chi2Diff.MI.M1.wide<-CCPolSupport.MI.Metric.M1.wide$uni
+Chi2Diff.MI.M1.wide<-Chi2Diff.MI.M1.wide %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1.wide<-CCPolSupport.MI.Metric.M1.wide$epc
+EPC.MI.M1.wide<-EPC.MI.M1.wide %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1.wide<-merge(EPC.MI.M1.wide, Chi2Diff.MI.M1.wide,
+                       by.x = "plabel",
+                       by.y = "plabel")
+
+EPC.Chi2Diff.wide.Summary<-EPC.Chi2Diff.M1.wide %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+
+##(full) metric Invariance Model 1 with standard bounded estimation:
+CCPolSupport.Metric.M1.standard<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*NA*support1+
+                  L2*support2+
+                  L3*support3
+
+##Constrain the first group to have the variance as 1:
+CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
+'
+
+CCPolSupport.Metric.Fit1.StandBound<-cfa(model = CCPolSupport.Metric.M1.standard,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        group.equal="loadings",
+                                        bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_StandBound.txt")
+summary(CCPolSupport.Metric.Fit1.StandBound, fit.measures=T, standardized=T)
+sink()
+
+
+##request modification indices:
+CCPolSupport.MI.Metric.M1.Stand<-lavTestScore(CCPolSupport.Metric.Fit1.StandBound, epc = T)
+
+Chi2Diff.MI.M1.Stand<-CCPolSupport.MI.Metric.M1.Stand$uni
+Chi2Diff.MI.M1.Stand<-Chi2Diff.MI.M1.Stand %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1.Stand<-CCPolSupport.MI.Metric.M1.Stand$epc
+EPC.MI.M1.Stand<-EPC.MI.M1.Stand %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1.Stand<-merge(EPC.MI.M1.Stand, Chi2Diff.MI.M1.Stand,
+                            by.x = "plabel",
+                            by.y = "plabel")
+
+EPC.Chi2Diff.Stand.Summary<-EPC.Chi2Diff.M1.Stand %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+
+###---------------------------------------------------------------------------------------
+##Full Metric Model with Marker Variable approach (support2 as marker):
+
+##no bound
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker.txt")
+summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
+sink()
+
+##request mi
+CCPolSupport.MI.Metric.M1<-lavTestScore(CCPolSupport.Metric.Fit1.Marker, epc = T)
 
 Chi2Diff.MI.M1<-CCPolSupport.MI.Metric.M1$uni
 Chi2Diff.MI.M1<-Chi2Diff.MI.M1 %>%
@@ -949,47 +1038,9 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-
-##(full) metric Invariance Model 1 with standard bounded estimation:
-CCPolSupport.Metric.M1<-'
-CCPolicySupport=~support1+support2+support3
-'
-
-CCPolSupport.Metric.Fit1.StandardBound<-cfa(model = CCPolSupport.Metric.M1,
-                                        data = ESS8,
-                                        group = "country",
-                                        estimator="MLR",
-                                        missing="FIML",
-                                        group.equal="loadings",
-                                        std.lv=T,
-                                        bounds="standard")
-
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_StandardBound.txt")
-summary(CCPolSupport.Metric.Fit1.StandardBound, fit.measures=T, standardized=T)
-sink()
-
-###---------------------------------------------------------------------------------------
-##Full Metric Model with Marker Variable approach (support3 as marker):
-
-##no bound
+##Support2 as marker: wide bound
 CCPolSupport.Metric.M1.Marker<-'
-CCPolicySupport=~support3+support1+support2
-'
-
-CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
-                                     data = ESS8,
-                                     group = "country",
-                                     estimator="MLR",
-                                     missing="FIML",
-                                     group.equal="loadings")
-
-#sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker.txt")
-#summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
-#sink()
-
-##wide bound
-CCPolSupport.Metric.M1.Marker<-'
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 '
 
 CCPolSupport.Metric.Fit1.WideBound.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
@@ -1004,9 +1055,32 @@ sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker_WideBound.txt")
 summary(CCPolSupport.Metric.Fit1.WideBound.Marker, fit.measures=T, standardized=T)
 sink()
 
-##standard bound
+##request modification indices:
+CCPolSupport.MI.Metric.M1.wide<-lavTestScore(CCPolSupport.Metric.Fit1.WideBound.Marker, epc = T)
+
+Chi2Diff.MI.M1.wide<-CCPolSupport.MI.Metric.M1.wide$uni
+Chi2Diff.MI.M1.wide<-Chi2Diff.MI.M1.wide %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1.wide<-CCPolSupport.MI.Metric.M1.wide$epc
+EPC.MI.M1.wide<-EPC.MI.M1.wide %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1.wide<-merge(EPC.MI.M1.wide, Chi2Diff.MI.M1.wide,
+                            by.x = "plabel",
+                            by.y = "plabel")
+
+EPC.Chi2Diff.wide.Summary<-EPC.Chi2Diff.M1.wide %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+##Support2 as marker: standard bound
 CCPolSupport.Metric.M1.Marker<-'
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 '
 
 CCPolSupport.Metric.Fit1.StandBound.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
@@ -1021,82 +1095,55 @@ sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker_StandardBound.txt")
 summary(CCPolSupport.Metric.Fit1.StandBound.Marker, fit.measures=T, standardized=T)
 sink()
 
+##request mi:
+CCPolSupport.MI.Metric.M1.Stand<-lavTestScore(CCPolSupport.Metric.Fit1.StandBound.Marker, epc = T)
+
+Chi2Diff.MI.M1.Stand<-CCPolSupport.MI.Metric.M1.Stand$uni
+Chi2Diff.MI.M1.Stand<-Chi2Diff.MI.M1.Stand %>%
+  select(rhs, X2) %>%
+  rename(plabel=rhs) %>%
+  mutate(X2=round(X2, digits = 3))
+
+EPC.MI.M1.Stand<-CCPolSupport.MI.Metric.M1.Stand$epc
+EPC.MI.M1.Stand<-EPC.MI.M1.Stand %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+
+EPC.Chi2Diff.M1.Stand<-merge(EPC.MI.M1.Stand, Chi2Diff.MI.M1.Stand,
+                             by.x = "plabel",
+                             by.y = "plabel")
+
+EPC.Chi2Diff.Stand.Summary<-EPC.Chi2Diff.M1.Stand %>%
+  filter(X2 >= 10) %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+
+
 ###---------------------------------------------------------------------------------------
-##Partial Metric Model with Marker Variable approach (support2 as marker):
+##Partial Metric Model with standardized factor variance approach:
 
-##first run the full metric model with support2 as marker to have a comparison later:
-CCPolSupport.Metric.M2.Marker<-'
-CCPolicySupport=~support2+support1+support3
+##no bound:
+CCPolSupport.Metric.M2<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*NA*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
+
+##Constrain the first group to have the variance as 1:
+CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
 '
 
-CCPolSupport.Metric.Fit2.Marker<-cfa(model = CCPolSupport.Metric.M2.Marker,
-                                     data = ESS8,
-                                     group = "country",
-                                     estimator="MLR",
-                                     missing="FIML",
-                                     group.equal="loadings")
+CCPolSupport.Metric.Fit2<-cfa(model = CCPolSupport.Metric.M2,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Support2Marker_FullMetric.txt")
-summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2.txt")
+summary(CCPolSupport.Metric.Fit2, fit.measures=T, standardized=T)
 sink()
 
-
-##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
-##no bound
-##cannot converge
-CCPolSupport.Metric.M2.Marker<-'
-CCPolicySupport=~support2+support1+support3
-'
-
-CCPolSupport.Metric.Fit2.Marker<-cfa(model = CCPolSupport.Metric.M2.Marker,
-                                     data = ESS8,
-                                     group = "country",
-                                     estimator="MLR",
-                                     missing="FIML",
-                                     group.equal="loadings",
-                                     group.partial=c("CCPolicySupport=~support3"))
-
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker.txt")
-summary(CCPolSupport.Metric.Fit2.Marker, fit.measures=T, standardized=T)
-sink()
-
-##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
-##wide bound
-CCPolSupport.Metric.M2.Marker<-'
-CCPolicySupport=~support2+support1+support3
-'
-
-CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
-                                     data = ESS8,
-                                     group = "country",
-                                     estimator="MLR",
-                                     missing="FIML",
-                                     group.equal="loadings",
-                                     group.partial=c("CCPolicySupport=~support3"),
-                                     bounds="wide")
-
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
-summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
-sink()
-
-##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
-##standard bound
-CCPolSupport.Metric.M2.Marker<-'
-CCPolicySupport=~support2+support1+support3
-'
-
-CCPolSupport.Metric.Fit2.Marker.StandBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
-                                               data = ESS8,
-                                               group = "country",
-                                               estimator="MLR",
-                                               missing="FIML",
-                                               group.equal="loadings",
-                                               group.partial=c("CCPolicySupport=~support3"),
-                                               bounds="standard")
-
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_StandBound.txt")
-summary(CCPolSupport.Metric.Fit2.Marker.StandBound, fit.measures=T, standardized=T)
-sink()
 
 ##Partial with standardized factor variance approach:
 ##wide bound
@@ -1117,12 +1164,97 @@ CCPolSupport.Metric.Fit2.WideBound<-cfa(model = CCPolSupport.Metric.M2.wide,
                                         missing="FIML",
                                         bounds="wide")
 
-sink("./Sink Output/ESS8/test_syntax_widebound_PartialMetric.txt")
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_WideBound.txt")
 summary(CCPolSupport.Metric.Fit2.WideBound, fit.measures=T, standardized=T)
 sink()
 
-a<-parTable(CCPolSupport.Metric.Fit2.WideBound)
+##Partial with standardized factor variance approach:
+##wide bound
+CCPolSupport.Metric.M2.Stand<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*NA*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
 
+##Constrain the first group to have the variance as 1:
+CCPolicySupport~~c(1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*CCPolicySupport
+'
+
+CCPolSupport.Metric.Fit2.StandBound<-cfa(model = CCPolSupport.Metric.M2.Stand,
+                                        data = ESS8,
+                                        group = "country",
+                                        estimator="MLR",
+                                        missing="FIML",
+                                        bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_StandBound.txt")
+summary(CCPolSupport.Metric.Fit2.StandBound, fit.measures=T, standardized=T)
+sink()
+
+
+###---------------------------------------------------------------------------------------
+##Partial Metric Model with Marker Variable approach (support2 as marker):
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##no bound
+##cannot converge
+CCPolSupport.Metric.M2.Marker<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
+'
+
+CCPolSupport.Metric.Fit2.Marker<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker.txt")
+summary(CCPolSupport.Metric.Fit2.Marker, fit.measures=T, standardized=T)
+sink()
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##wide bound
+CCPolSupport.Metric.M2.Marker<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     bounds="wide")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
+summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
+sink()
+
+
+##(partial) metric Invariance Model 2: free the loading CCPolicySupport=~Support3
+##standard bound
+CCPolSupport.Metric.M2.Marker<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~L1*support2+
+                  L2*support1+
+                  c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)*support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.StandBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               bounds="standard")
+
+sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_StandBound.txt")
+summary(CCPolSupport.Metric.Fit2.Marker.StandBound, fit.measures=T, standardized=T)
+sink()
 
 #####################################################################################
 ################### Personal Efficacy - Measurement Model ###########################
@@ -2996,7 +3128,7 @@ ggplot(map_with_5clusters_NegativeSE, aes(long, lat, group = group, fill = facto
 
 
 #####################################################################################
-################# Basic Model - policy support: MMGSEM  #############################
+############## Basic Model - Full Metric policy support: MMGSEM  ####################
 #####################################################################################
 
 ##First, take all the necessary measurement models and change to marker variable approach:
@@ -3027,8 +3159,9 @@ NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
 ##
 ##climate change policy support
 ##(full) metric Invariance Model 1:
+##change to support 2 as the marker
 CCPolSupport.Metric.M1.Marker<-'
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 '
 
 CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
@@ -3043,7 +3176,7 @@ CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
 #sink()
 
 ##listwise deletion:
-ESS8_lw<-na.omit(ESS8)
+#ESS8_lw<-na.omit(ESS8)
 
 ##Structural model
 Str_model<-'
@@ -3060,7 +3193,7 @@ BasicModel.CCPolicySupport.Selection<-ModelSelection(dat=ESS8,
                                      userStart = NULL,
                                      s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
                                      max_it = 10000L,
-                                     nstarts = 300L,
+                                     nstarts = 100L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -3438,9 +3571,9 @@ ClusterRes.6clus.300s<-merge(ClusterRes.6clus.300s, countries,
 
 
 
-#####################################################################################
-########### Basic Model -- CC Policy Support: SAM estimation and comparison #########
-#####################################################################################
+###########################################################################################
+######## Basic Model -- Full Metric CC Policy Support: SAM estimation and comparison ######
+###########################################################################################
 
 ##First do the following step that is necessary for both 3-cluster and 6-cluster solution
 #
@@ -3610,9 +3743,9 @@ htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D), "CCPolSupport_3clus_3D
 ##cluster 3: group 1,2,3,4,5,6, 7,8,9,10,15,17,18,20,22,23
 
 sam_CCPolSupport_3clus_FIML<-'
-CCPolicySupport~c(a1,a1,a1,a1,a1,a1,a1,a1,a1,a1,a2,a2,a2,a2,a1,a3,a1,a1,a2,a1,a2,a1,a1)*SelfTran+
-          c(b1,b1,b1,b1,b1,b1,b1,b1,b1,b1,b2,b2,b2,b2,b1,b3,b1,b1,b2,b1,b2,b1,b1)*Conser+
-          c(c1,c1,c1,c1,c1,c1,c1,c1,c1,c1,c2,c2,c2,c2,c1,c3,c1,c1,c2,c1,c2,c1,c1)*SelfEnhan
+CCPolicySupport~c(a3,a3,a3,a3,a3,a3,a3,a3,a3,a3,a2,a2,a2,a2,a3,a1,a3,a3,a2,a3,a2,a3,a3)*SelfTran+
+          c(b3,b3,b3,b3,b3,b3,b3,b3,b3,b3,b2,b2,b2,b2,b3,b1,b3,b3,b2,b3,b2,b3,b3)*Conser+
+          c(c3,c3,c3,c3,c3,c3,c3,c3,c3,c3,c2,c2,c2,c2,c3,c1,c3,c3,c2,c3,c2,c3,c3)*SelfEnhan
 '
 
 CCPolSupport.SAM.3clus.FIML<-cfa(model = sam_CCPolSupport_3clus_FIML,
@@ -3649,7 +3782,7 @@ FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country,
 
 vline_data <- data.frame(
   Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(0, -0.25, 0.375)                             # Line positions
+  xintercept = c(0, -0.1, 0.375)                             # Line positions
 )
 
 ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
@@ -3681,8 +3814,8 @@ CCPolSupport_3clus_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser,
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-
-htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D_FIML), "CCPolSupport_3clus_3D_FIML.html")
+#htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D_FIML), "CCPolSupport_3clus_3D_FIML.html")
+htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D_FIML), "CCPolSupport_3clus_3D_FIML_support2.html")
 
 
 ##
@@ -3931,7 +4064,7 @@ htmlwidgets::saveWidget(as_widget(CCPolSupport_6clus_3D_150s), "CCPolSupport_6cl
 
 
 #####################################################################################
-################ Basic Model - CC Policy Support: Simultaneously MGSEM ##############
+######### Basic Model - Full Metric CC Policy Support: Simultaneously MGSEM #########
 #####################################################################################
 
 ##Specify the model:
@@ -3945,7 +4078,7 @@ SelfEnhan=~SE2+SE1+SE3+SE4+C1
 C5~~C6
 
 ##Climate Change Policy Support
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 
 ##Structural Model:
 CCPolicySupport~SelfTran+Conser+SelfEnhan
@@ -3960,7 +4093,7 @@ RegSEM.BasicModel.HV.CCPolSupport<-cfa(model = BasicModel.HV.CCPolSupport,
                                    group.equal="loadings",
                                    group.partial=c("SelfEnhan=~SE3"))
 
-sink("./Sink Output/ESS8/CCPolSupport_BasicModel_FreeRegSEM.txt")
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_FreeRegSEM2.txt")
 summary(RegSEM.BasicModel.HV.CCPolSupport, fit.measures=T, standardized=T)
 sink()
 
@@ -4059,7 +4192,7 @@ FreeSEM_reg_param$country <- fct_reorder(FreeSEM_reg_param$country,
 
 vline_data <- data.frame(
   Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(0, -0.25, 0.5)                             # Line positions
+  xintercept = c(0, -0.1, 0.375)                             # Line positions
 )
 
 
@@ -4085,12 +4218,12 @@ SelfEnhan=~SE2+SE1+SE3+SE4+C1
 C5~~C6
 
 ##Climate Change Belief
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 
 ##Structural Model:
-CCPolicySupport~c(a1,a1,a1,a1,a1,a1,a1,a1,a1,a1,a2,a2,a2,a2,a1,a3,a1,a1,a2,a1,a2,a1,a1)*SelfTran+
-                c(b1,b1,b1,b1,b1,b1,b1,b1,b1,b1,b2,b2,b2,b2,b1,b3,b1,b1,b2,b1,b2,b1,b1)*Conser+
-                c(c1,c1,c1,c1,c1,c1,c1,c1,c1,c1,c2,c2,c2,c2,c1,c3,c1,c1,c2,c1,c2,c1,c1)*SelfEnhan
+CCPolicySupport~c(a3,a3,a3,a3,a3,a3,a3,a3,a3,a3,a2,a2,a2,a2,a3,a1,a3,a3,a2,a3,a2,a3,a3)*SelfTran+
+                c(b3,b3,b3,b3,b3,b3,b3,b3,b3,b3,b2,b2,b2,b2,b3,b1,b3,b3,b2,b3,b2,b3,b3)*Conser+
+                c(c3,c3,c3,c3,c3,c3,c3,c3,c3,c3,c2,c2,c2,c2,c3,c1,c3,c3,c2,c3,c2,c3,c3)*SelfEnhan
 '
 
 ##run regular MGSEM:
@@ -4102,7 +4235,7 @@ RegSEM.BasicModel.HV.CCPolSupport.3clus.FIML<-cfa(model = BasicModel.HV.CCPolSup
                                              group.equal="loadings",
                                              group.partial=c("SelfEnhan=~SE3"))
 
-sink("./Sink Output/ESS8/CCPolSupport_BasicModel_RegMGSEM_3clus_FIML.txt")
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_RegMGSEM_3clus_FIML2.txt")
 summary(RegSEM.BasicModel.HV.CCPolSupport.3clus.FIML, fit.measures=T, standardized=T)
 sink()
 
@@ -5776,3 +5909,285 @@ BasicModel.SI.5clus.150s.FIML<-cfa(model = SI_str_model_5clus.150s.FIML,
 sink("./Sink Output/ESS8/BasicModel_SingleIndicator_5clus_noLT.txt")
 summary(BasicModel.SI.5clus.150s.FIML, fit.measures=T, standardized=T)
 sink()
+
+
+
+
+#####################################################################################
+##### Single Indicator Approach for Basic Model: Full Metric CCPolSupport ###########
+#####################################################################################
+
+###------------------------------------------------------------------------------------
+##Start with the Human Values model:
+#
+##Original model with cross-loadings and allow covariance between factors are as below:
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
+Phi_HV<-lapply(EST_HV, "[[", "psi")
+lambda_HV<-lapply(EST_HV, "[[","lambda")
+theta_HV<-lapply(EST_HV, "[[","theta")
+
+##Take only the diagonal from the Phi_HV matrix:
+Phi_HV<-lapply(Phi_HV, function(x) diag(diag(x)))
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_HV_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_HV[[g]]<-solve(solve(Phi_HV[[g]])+t(lambda_HV[[g]]) %*% solve(theta_HV[[g]]) %*% lambda_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(theta_HV[[g]])
+  
+  ##factor scores
+  y_HV_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_HV[[g]])]
+  FactorScores_HV[[g]]<-AR_Matrix_HV[[g]] %*% t(y_HV_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_HV[[g]]<-lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]])+theta_HV[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_HV[[g]]<-Phi_HV[[g]]-t(Phi_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(ModelImplied_Sigma_HV[[g]]) %*% lambda_HV[[g]] %*% Phi_HV[[g]]
+}
+
+##Take only the diagonal of the Posterior Varf for the next step:
+Posterior_Varf_HV<-lapply(Posterior_Varf_HV, function(x) diag(diag(x)))
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_HV[[g]]<-cov(t(FactorScores_HV[[g]]), use = "pairwise.complete.obs")
+}
+
+##Take only the diagonal of the var(f)
+Var_f_HV<-lapply(Var_f_HV, function(x) diag(diag(x)))
+
+
+##compute the true factor variance 
+TruePhi_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_HV[[g]]<-Var_f_HV[[g]]+Posterior_Varf_HV[[g]]
+}
+
+##compute the ρ:
+Rho_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_HV[[g]]<-Var_f_HV[[g]]%*% solve(TruePhi_HV[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_HV[[g]]<-TruePhi_HV[[g]] %*% Rho_HV[[g]] %*% (diag(1, nrow = 3, ncol = 3)-Rho_HV[[g]])
+  
+}
+
+
+
+###------------------------------------------------------------------------------------
+##Repeat the same steps with the full metric Climate Change Policy Support:
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
+
+
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit1.Marker, what = "est")
+Phi_CCPolSupport<-lapply(EST_CCPolSupport, "[[", "psi")
+lambda_CCPolSupport<-lapply(EST_CCPolSupport, "[[","lambda")
+theta_CCPolSupport<-lapply(EST_CCPolSupport, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_CCPolSupport_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_CCPolSupport[[g]]<-solve(solve(Phi_CCPolSupport[[g]])+t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]])
+  
+  ##factor scores
+  y_CCPolSupport_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_CCPolSupport[[g]])]
+  FactorScores_CCPolSupport[[g]]<-AR_Matrix_CCPolSupport[[g]] %*% t(y_CCPolSupport_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_CCPolSupport[[g]]<-lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]] %*% t(lambda_CCPolSupport[[g]])+theta_CCPolSupport[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_CCPolSupport[[g]]<-Phi_CCPolSupport[[g]]-t(Phi_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(ModelImplied_Sigma_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]]
+}
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_CCPolSupport[[g]]<-cov(t(FactorScores_CCPolSupport[[g]]), use = "pairwise.complete.obs")
+}
+
+
+##compute the true factor variance 
+TruePhi_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]+Posterior_Varf_CCPolSupport[[g]]
+}
+
+##compute the ρ:
+Rho_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]%*% solve(TruePhi_CCPolSupport[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_CCPolSupport[[g]]<-TruePhi_CCPolSupport[[g]] * Rho_CCPolSupport[[g]] %*% (diag(1, nrow = 1, ncol = 1)-Rho_CCPolSupport[[g]])
+  
+}
+
+
+
+###------------------------------------------------------------------------------------
+##At this point, we need to put each pair together in the same matrix:
+#Rho_HV, Rho_CCPolSupport --> Rho_g
+#Theta_g_HV, Theta_g_CCPolSupport --> Theta_g
+#for Cov_fg: we need to first put the factor scores together and then ask for the Cov_fg
+
+Rho_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Theta_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+factorScore_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Cov_fg<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  ##first focus on Rho_g
+  Rho_g[[g]]<-lav_matrix_bdiag(Rho_HV[[g]], Rho_CCPolSupport[[g]])
+  colnames(Rho_g[[g]])<-rownames(Rho_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##then focus on Theta_g
+  Theta_g[[g]]<-lav_matrix_bdiag(Theta_g_HV[[g]], Theta_g_CCPolSupport[[g]])
+  colnames(Theta_g[[g]])<-rownames(Theta_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##lastly focus on Cov_fg
+  #first put the factor scores together:
+  factorScore_g[[g]]<-rbind(FactorScores_HV[[g]],FactorScores_CCPolSupport[[g]])
+  rownames(factorScore_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  Cov_fg[[g]]<-cov(t(factorScore_g[[g]]), use = "pairwise.complete.obs")
+}
+
+##compute the factor covariance matrix that could be used to estimate the structural model through lavaan
+Phi_BasicModel_Step2<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Phi_BasicModel_Step2[[g]]<-solve(Rho_g[[g]]) %*% (Cov_fg[[g]]-Theta_g[[g]]) %*% solve(t(Rho_g[[g]]))
+}
+
+
+###----------------------------------------------------------------------------------------------------------
+##Take out LT as the sample covariance matrix is not positive-definite
+ESS_noLT<-ESS8 %>%
+  filter(country != "LT")
+
+##Take 16th out of the Phi_BasicModel_Step2
+NEWPhi_BasicModel_Step2<-Phi_BasicModel_Step2[-16]
+
+##To extract the new nobs
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS_noLT,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F) ##to extract the nobs per country
+
+
+##run the Structural model without LT
+SI_CCPolSupportModel_3clus<-'
+CCPolicySupport~c(a3,a3,a3,a3,a3,a3,a3,a3,a3,a3,a2,a2,a2,a2,a3,a3,a3,a2,a3,a2,a3,a3)*SelfTran+
+                c(b3,b3,b3,b3,b3,b3,b3,b3,b3,b3,b2,b2,b2,b2,b3,b3,b3,b2,b3,b2,b3,b3)*Conser+
+                c(c3,c3,c3,c3,c3,c3,c3,c3,c3,c3,c2,c2,c2,c2,c3,c3,c3,c2,c3,c2,c3,c3)*SelfEnhan
+'
+
+CCPolSupport.SI.3clus.fit<-cfa(model = SI_CCPolSupportModel_3clus,
+                                   sample.cov = NEWPhi_BasicModel_Step2,
+                                   sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/CCPolSupport_BasicModel_SingleIndicator_3clus_noLT.txt")
+summary(CCPolSupport.SI.3clus.fit, fit.measures=T, standardized=T)
+sink()
+
