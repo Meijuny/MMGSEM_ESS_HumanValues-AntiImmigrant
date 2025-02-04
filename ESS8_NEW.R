@@ -3128,7 +3128,7 @@ ggplot(map_with_5clusters_NegativeSE, aes(long, lat, group = group, fill = facto
 
 
 #####################################################################################
-############## Basic Model - Full Metric policy support: MMGSEM  ####################
+############## Basic Model - Policy Support: MMGSEM  ####################
 #####################################################################################
 
 ##First, take all the necessary measurement models and change to marker variable approach:
@@ -3156,27 +3156,54 @@ NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
 #summary(NoOpen.HV.Metric.Fit2.Marker, fit.measures=T, standardized=T)
 #sink()
 
-##
+##--------------------------------------------------------------------------------------------------------
 ##climate change policy support
-##(full) metric Invariance Model 1:
-##change to support 2 as the marker
-CCPolSupport.Metric.M1.Marker<-'
-CCPolicySupport=~support2+support1+support3
+#
+##Option A: full metric invariance Model with support 3 as marker
+CCPolSupport.FMetric.M1.MarkerSup3<-'
+CCPolicySupport=~support3+support1+support2
 '
 
-CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+CCPolSupport.FMetric.Fit1.MarkerSup3<-cfa(model = CCPolSupport.FMetric.M1.MarkerSup3,
                               data = ESS8,
                               group = "country",
                               estimator="MLR",
                               missing="FIML",
                               group.equal="loadings")
 
-#sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker.txt")
-#summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
-#sink()
+#
+##Option B: full metric invariance Model with support 2 as marker
+CCPolSupport.FMetric.M1.MarkerSup2<-'
+CCPolicySupport=~support2+support1+support3
+'
 
-##listwise deletion:
-#ESS8_lw<-na.omit(ESS8)
+CCPolSupport.FMetric.Fit1.MarkerSup2<-cfa(model = CCPolSupport.FMetric.M1.MarkerSup2,
+                                         data = ESS8,
+                                         group = "country",
+                                         estimator="MLR",
+                                         missing="FIML",
+                                         group.equal="loadings")
+
+#
+##Option C: partial metric invariance model with support 2 as marker and let support 3 freely estimated (wide bound estimation)
+CCPolSupport.PMetric.M1.MarkerSup2<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.PMetric.Fit1.MarkerSup2<-cfa(model = CCPolSupport.PMetric.M1.MarkerSup2,
+                                         data = ESS8,
+                                         group = "country",
+                                         estimator="MLR",
+                                         missing="FIML",
+                                         group.equal="loadings",
+                                         group.partial=c("CCPolicySupport=~support3"),
+                                         bounds="wide")
+
+
+
+
+##--------------------------------------------------------------------------------------------------------
+##MMGSEM
 
 ##Structural model
 Str_model<-'
@@ -3184,16 +3211,19 @@ CCPolicySupport~SelfTran+Conser+SelfEnhan
 '
 
 ##Model selection 
-BasicModel.CCPolicySupport.Selection<-ModelSelection(dat=ESS8,
-                                     S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+#
+##option A: CCPolSupport full metric with support 3 as marker
+#
+BasicModel.FMetricCCPolSup.marker3.Selection<-ModelSelection(dat=ESS8,
+                                     S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.FMetric.M1.MarkerSup3),
                                      S2 = Str_model,
                                      group = "country",
                                      clusters=c(1,8),
                                      seed = 100,
                                      userStart = NULL,
-                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.FMetric.Fit1.MarkerSup3),
                                      max_it = 10000L,
-                                     nstarts = 100L,
+                                     nstarts = 150L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -3203,14 +3233,61 @@ BasicModel.CCPolicySupport.Selection<-ModelSelection(dat=ESS8,
                                      rescaling = F,
                                      missing="FIML")
 
+View(BasicModel.FMetricCCPolSup.marker3.Selection$Overview)
 
-View(BasicModel.CCPolicySupport.Selection$Overview)
+#
+##option B: CCPolSupport full metric with support 2 as marker
+BasicModel.FMetricCCPolSup.marker2.Selection<-ModelSelection(dat=ESS8,
+                                                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.FMetric.M1.MarkerSup2),
+                                                             S2 = Str_model,
+                                                             group = "country",
+                                                             clusters=c(1,8),
+                                                             seed = 100,
+                                                             userStart = NULL,
+                                                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.FMetric.Fit1.MarkerSup2),
+                                                             max_it = 10000L,
+                                                             nstarts = 150L,
+                                                             printing = FALSE,
+                                                             partition = "hard",
+                                                             endogenous_cov = TRUE,
+                                                             endo_group_specific = TRUE,
+                                                             sam_method = "local",
+                                                             meanstr = FALSE,
+                                                             rescaling = F,
+                                                             missing="FIML")
+
+View(BasicModel.FMetricCCPolSup.marker2.Selection$Overview)
+
+#
+##option C: CCPolSupport partial metric with support 2 as marker:
+BasicModel.PMetricCCPolSup.marker2.Selection<-ModelSelection(dat=ESS8,
+                                                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.PMetric.M1.MarkerSup2),
+                                                             S2 = Str_model,
+                                                             group = "country",
+                                                             clusters=c(1,8),
+                                                             seed = 100,
+                                                             userStart = NULL,
+                                                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
+                                                             max_it = 10000L,
+                                                             nstarts = 150L,
+                                                             printing = FALSE,
+                                                             partition = "hard",
+                                                             endogenous_cov = TRUE,
+                                                             endo_group_specific = TRUE,
+                                                             sam_method = "local",
+                                                             meanstr = FALSE,
+                                                             rescaling = F,
+                                                             missing="FIML")
+
+View(BasicModel.PMetricCCPolSup.marker2.Selection$Overview)
+
+
 
 ##expected CHull for cluster 4:
 (-1156357)+(677-673)*(-1156339-(-1156357))/(681-673)
 ##-1156348
 
-a<-BasicModel.CCPolicySupport.Selection$Overview
+a<-BasicModel.FMetricCCPolSup.marker2.Selection$Overview
 View(a)
 a[4,3]<--1156346
 ggplot(a, aes(x=nrpar, y=LL)) +
@@ -3221,79 +3298,45 @@ ggplot(a, aes(x=nrpar, y=LL)) +
 
 #
 ##plot for CHull observed
-ggplot(BasicModel.CCPolicySupport.Selection$Overview, aes(x=nrpar, y=LL)) +
+ggplot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview, aes(x=nrpar, y=LL)) +
   geom_point()+
   geom_line()+
   labs(title = "Original CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
   theme_minimal()
 #
 ##plot for CHull factor
-ggplot(BasicModel.CCPolicySupport.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
+ggplot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
   geom_point()+
   geom_line()+
   labs(title = "CHUll factor")+xlab("number of parameters")+ylab("Log-Likelihood")+
   theme_minimal()
 #
 ##plot for BIC_G observed
-ggplot(BasicModel.CCPolicySupport.Selection$Overview, aes(x=Clusters, y=BIC_G))+
+ggplot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview, aes(x=Clusters, y=BIC_G))+
   geom_point()+geom_line()+
   labs(title = "BIC_G Observed")+xlab("Number of Clusters")+ylab("BIC_G")+
   theme_minimal()
 #
 ##plot for BIC_G factor
-ggplot(BasicModel.CCPolicySupport.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
+ggplot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
   geom_point()+geom_line()+
   labs(title = "BIC_G Factor")+xlab("Number of Clusters")+ylab("BIC_G")+
   theme_minimal()
 
 
-##3 clusters 50 random starts
-CCPolicySupport.3clus.50S<-MMGSEM(dat=ESS8_lw,
-                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                             S2 = Str_model,
-                             group = "country",
-                             nclus=3,
-                             seed = 100,
-                             userStart = NULL,
-                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                             max_it = 10000L,
-                             nstarts = 50L,
-                             printing = FALSE,
-                             partition = "hard",
-                             endogenous_cov = TRUE,
-                             endo_group_specific = TRUE,
-                             sam_method = "local",
-                             meanstr = FALSE,
-                             rescaling = F)
+####-------------------------------------------------------------------------------------------------------
 #
 ##3 clusters 150 random starts
-CCPolicySupport.3clus.150S<-MMGSEM(dat=ESS8_lw,
-                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                  S2 = Str_model,
-                                  group = "country",
-                                  nclus=3,
-                                  seed = 100,
-                                  userStart = NULL,
-                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                  max_it = 10000L,
-                                  nstarts = 150L,
-                                  printing = FALSE,
-                                  partition = "hard",
-                                  endogenous_cov = TRUE,
-                                  endo_group_specific = TRUE,
-                                  sam_method = "local",
-                                  meanstr = FALSE,
-                                  rescaling = F)
 #
-##change with imputation:
-CCPolicySupport.3clus.150S.FIML<-MMGSEM(dat=ESS8,
-                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
+##Option A: full metric invariance CCPolSupport with support3 as marker
+CCPolicySupport.3clus.150S.MarkSup3.FM<-MMGSEM(dat=ESS8,
+                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.FMetric.M1.MarkerSup3),
                                    S2 = Str_model,
                                    group = "country",
                                    nclus=3,
                                    seed = 100,
                                    userStart = NULL,
-                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
+                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.FMetric.Fit1.MarkerSup3),
                                    max_it = 10000L,
                                    nstarts = 150L,
                                    printing = FALSE,
@@ -3304,148 +3347,79 @@ CCPolicySupport.3clus.150S.FIML<-MMGSEM(dat=ESS8,
                                    meanstr = FALSE,
                                    rescaling = F,
                                    missing="FIML")
-
-
-
-##4 clusters 50 random starts
-CCPolicySupport.4clus.50S<-MMGSEM(dat=ESS8_lw,
-                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                  S2 = Str_model,
-                                  group = "country",
-                                  nclus=4,
-                                  seed = 100,
-                                  userStart = NULL,
-                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                  max_it = 10000L,
-                                  nstarts = 50L,
-                                  printing = FALSE,
-                                  partition = "hard",
-                                  endogenous_cov = TRUE,
-                                  endo_group_specific = TRUE,
-                                  sam_method = "local",
-                                  meanstr = FALSE,
-                                  rescaling = F)
+round(CCPolicySupport.3clus.150S.MarkSup3.FM$posteriors, digits = 5)
 #
-##4 clusters 150 random starts
-CCPolicySupport.4clus.150S<-MMGSEM(dat=ESS8_lw,
-                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                   S2 = Str_model,
-                                   group = "country",
-                                   nclus=4,
-                                   seed = 100,
-                                   userStart = NULL,
-                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                   max_it = 10000L,
-                                   nstarts = 150L,
-                                   printing = FALSE,
-                                   partition = "hard",
-                                   endogenous_cov = TRUE,
-                                   endo_group_specific = TRUE,
-                                   sam_method = "local",
-                                   meanstr = FALSE,
-                                   rescaling = F)
+##Option B: full metric invariance CCPolSupport with support2 as marker
+CCPolicySupport.3clus.150S.MarkSup2.FM<-MMGSEM(dat=ESS8,
+                                            S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.FMetric.M1.MarkerSup2),
+                                            S2 = Str_model,
+                                            group = "country",
+                                            nclus=3,
+                                            seed = 100,
+                                            userStart = NULL,
+                                            s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.FMetric.Fit1.MarkerSup2),
+                                            max_it = 10000L,
+                                            nstarts = 150L,
+                                            printing = FALSE,
+                                            partition = "hard",
+                                            endogenous_cov = TRUE,
+                                            endo_group_specific = TRUE,
+                                            sam_method = "local",
+                                            meanstr = FALSE,
+                                            rescaling = F,
+                                            missing="FIML")
+round(CCPolicySupport.3clus.150S.MarkSup2.FM$posteriors, digits = 5)
 #
-##4 clusters 300 random starts
-CCPolicySupport.4clus.300S<-MMGSEM(dat=ESS8_lw,
-                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                   S2 = Str_model,
-                                   group = "country",
-                                   nclus=4,
-                                   seed = 100,
-                                   userStart = NULL,
-                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                   max_it = 10000L,
-                                   nstarts = 300L,
-                                   printing = FALSE,
-                                   partition = "hard",
-                                   endogenous_cov = TRUE,
-                                   endo_group_specific = TRUE,
-                                   sam_method = "local",
-                                   meanstr = FALSE,
-                                   rescaling = F)
+##Option c: partial metric invariance CCPolSupport with support2 as marker
+CCPolicySupport.3clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
+                                            S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.PMetric.M1.MarkerSup2),
+                                            S2 = Str_model,
+                                            group = "country",
+                                            nclus=3,
+                                            seed = 100,
+                                            userStart = NULL,
+                                            s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
+                                            max_it = 10000L,
+                                            nstarts = 150L,
+                                            printing = FALSE,
+                                            partition = "hard",
+                                            endogenous_cov = TRUE,
+                                            endo_group_specific = TRUE,
+                                            sam_method = "local",
+                                            meanstr = FALSE,
+                                            rescaling = F,
+                                            missing="FIML")
+round(CCPolicySupport.3clus.150S.MarkSup2.PM$posteriors, digits = 5)
+
+###------------------------------------------------------------------------------------------------------------------------------
+##Extra clustering run for 4-cluster solution with CCPolSupport Partial metric invariance
+CCPolicySupport.4clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
+                                               S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.PMetric.M1.MarkerSup2),
+                                               S2 = Str_model,
+                                               group = "country",
+                                               nclus=4,
+                                               seed = 100,
+                                               userStart = NULL,
+                                               s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
+                                               max_it = 10000L,
+                                               nstarts = 150L,
+                                               printing = FALSE,
+                                               partition = "hard",
+                                               endogenous_cov = TRUE,
+                                               endo_group_specific = TRUE,
+                                               sam_method = "local",
+                                               meanstr = FALSE,
+                                               rescaling = F,
+                                               missing="FIML")
+round(CCPolicySupport.4clus.150S.MarkSup2.PM$posteriors, digits = 5)
 
 
-#
-##6 clusters 50 random starts
-CCPolicySupport.6clus.50S<-MMGSEM(dat=ESS8_lw,
-                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                   S2 = Str_model,
-                                   group = "country",
-                                   nclus=6,
-                                   seed = 100,
-                                   userStart = NULL,
-                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                   max_it = 10000L,
-                                   nstarts = 50L,
-                                   printing = FALSE,
-                                   partition = "hard",
-                                   endogenous_cov = TRUE,
-                                   endo_group_specific = TRUE,
-                                   sam_method = "local",
-                                   meanstr = FALSE,
-                                   rescaling = F)
-
-#
-##6 clusters 150 random starts
-CCPolicySupport.6clus.150S<-MMGSEM(dat=ESS8_lw,
-                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                  S2 = Str_model,
-                                  group = "country",
-                                  nclus=6,
-                                  seed = 100,
-                                  userStart = NULL,
-                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                  max_it = 10000L,
-                                  nstarts = 150L,
-                                  printing = FALSE,
-                                  partition = "hard",
-                                  endogenous_cov = TRUE,
-                                  endo_group_specific = TRUE,
-                                  sam_method = "local",
-                                  meanstr = FALSE,
-                                  rescaling = F)
-#
-##6 clusters 300 random starts
-CCPolicySupport.6clus.300S<-MMGSEM(dat=ESS8_lw,
-                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M1.Marker),
-                                   S2 = Str_model,
-                                   group = "country",
-                                   nclus=6,
-                                   seed = 100,
-                                   userStart = NULL,
-                                   s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit1.Marker),
-                                   max_it = 10000L,
-                                   nstarts = 300L,
-                                   printing = FALSE,
-                                   partition = "hard",
-                                   endogenous_cov = TRUE,
-                                   endo_group_specific = TRUE,
-                                   sam_method = "local",
-                                   meanstr = FALSE,
-                                   rescaling = F)
-
-
-
-
+###------------------------------------------------------------------------------------------------------------------------------
 ##Clustering membership
 #
-#3-cluster solution
-clustering.3clus<-t(apply(CCPolicySupport.3clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.3clus[,2]<-ifelse(clustering.3clus[,2]==1,2,0)
-clustering.3clus[,3]<-ifelse(clustering.3clus[,3]==1,3,0)
-
-ClusMembership.3clus<-apply(clustering.3clus,1,function(x) sum(x))
-ClusterRes.3clus<-data.frame(group=c(1:23),
-                             ClusMembership=ClusMembership.3clus)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
-                        by.x = "group", by.y = "group")
-#
-#3-cluster solution with imputation
-clustering.3clus<-t(apply(CCPolicySupport.3clus.150S.FIML$posteriors,1,function(x) as.numeric(x==max(x))))
+##Option A: CCPolSupport Full metric with support 3 as marker
+##3 clusters solution
+clustering.3clus<-t(apply(CCPolicySupport.3clus.150S.MarkSup3.FM$posteriors,1,function(x) as.numeric(x==max(x))))
 clustering.3clus[,2]<-ifelse(clustering.3clus[,2]==1,2,0)
 clustering.3clus[,3]<-ifelse(clustering.3clus[,3]==1,3,0)
 
@@ -3459,122 +3433,15 @@ countries<-data.frame(group=c(1:23),
 ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
                         by.x = "group", by.y = "group")
 
-#
-#4-cluster solution 50 random starts
-clustering.4clus.50s<-t(apply(CCPolicySupport.4clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.4clus.50s[,2]<-ifelse(clustering.4clus.50s[,2]==1,2,0)
-clustering.4clus.50s[,3]<-ifelse(clustering.4clus.50s[,3]==1,3,0)
-clustering.4clus.50s[,4]<-ifelse(clustering.4clus.50s[,4]==1,4,0)
-
-ClusMembership.4clus.50s<-apply(clustering.4clus.50s,1,function(x) sum(x))
-ClusterRes.4clus.50s<-data.frame(group=c(1:23),
-                                  ClusMembership=ClusMembership.4clus.50s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.4clus.50s<-merge(ClusterRes.4clus.50s, countries,
-                             by.x = "group", by.y = "group")
-
-#
-#4-cluster solution 150 random starts
-clustering.4clus.150s<-t(apply(CCPolicySupport.4clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.4clus.150s[,2]<-ifelse(clustering.4clus.150s[,2]==1,2,0)
-clustering.4clus.150s[,3]<-ifelse(clustering.4clus.150s[,3]==1,3,0)
-clustering.4clus.150s[,4]<-ifelse(clustering.4clus.150s[,4]==1,4,0)
-
-ClusMembership.4clus.150s<-apply(clustering.4clus.150s,1,function(x) sum(x))
-ClusterRes.4clus.150s<-data.frame(group=c(1:23),
-                             ClusMembership=ClusMembership.4clus.150s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.4clus.150s<-merge(ClusterRes.4clus.150s, countries,
-                        by.x = "group", by.y = "group")
-
-#
-#4-cluster solution 300 random starts --> same as the 150 random starts
-clustering.4clus.300s<-t(apply(CCPolicySupport.4clus.300S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.4clus.300s[,2]<-ifelse(clustering.4clus.300s[,2]==1,2,0)
-clustering.4clus.300s[,3]<-ifelse(clustering.4clus.300s[,3]==1,3,0)
-clustering.4clus.300s[,4]<-ifelse(clustering.4clus.300s[,4]==1,4,0)
-
-ClusMembership.4clus.300s<-apply(clustering.4clus.300s,1,function(x) sum(x))
-ClusterRes.4clus.300s<-data.frame(group=c(1:23),
-                                  ClusMembership=ClusMembership.4clus.300s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.4clus.300s<-merge(ClusterRes.4clus.300s, countries,
-                             by.x = "group", by.y = "group")
-
-
-#
-#6-cluster solution 50 random starts
-clustering.6clus.50s<-t(apply(CCPolicySupport.6clus.50S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.6clus.50s[,2]<-ifelse(clustering.6clus.50s[,2]==1,2,0)
-clustering.6clus.50s[,3]<-ifelse(clustering.6clus.50s[,3]==1,3,0)
-clustering.6clus.50s[,4]<-ifelse(clustering.6clus.50s[,4]==1,4,0)
-clustering.6clus.50s[,5]<-ifelse(clustering.6clus.50s[,5]==1,5,0)
-clustering.6clus.50s[,6]<-ifelse(clustering.6clus.50s[,6]==1,6,0)
-
-ClusMembership.6clus.50s<-apply(clustering.6clus.50s,1,function(x) sum(x))
-ClusterRes.6clus.50s<-data.frame(group=c(1:23),
-                                 ClusMembership=ClusMembership.6clus.50s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.6clus.50s<-merge(ClusterRes.6clus.50s, countries,
-                            by.x = "group", by.y = "group")
-
-#
-#6-cluster solution 150 random starts
-clustering.6clus.150s<-t(apply(CCPolicySupport.6clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.6clus.150s[,2]<-ifelse(clustering.6clus.150s[,2]==1,2,0)
-clustering.6clus.150s[,3]<-ifelse(clustering.6clus.150s[,3]==1,3,0)
-clustering.6clus.150s[,4]<-ifelse(clustering.6clus.150s[,4]==1,4,0)
-clustering.6clus.150s[,5]<-ifelse(clustering.6clus.150s[,5]==1,5,0)
-clustering.6clus.150s[,6]<-ifelse(clustering.6clus.150s[,6]==1,6,0)
-
-ClusMembership.6clus.150s<-apply(clustering.6clus.150s,1,function(x) sum(x))
-ClusterRes.6clus.150s<-data.frame(group=c(1:23),
-                                 ClusMembership=ClusMembership.6clus.150s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.6clus.150s<-merge(ClusterRes.6clus.150s, countries,
-                            by.x = "group", by.y = "group")
-
-
-#
-#6-cluster solution 300 random starts
-clustering.6clus.300s<-t(apply(CCPolicySupport.6clus.300S$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.6clus.300s[,2]<-ifelse(clustering.6clus.300s[,2]==1,2,0)
-clustering.6clus.300s[,3]<-ifelse(clustering.6clus.300s[,3]==1,3,0)
-clustering.6clus.300s[,4]<-ifelse(clustering.6clus.300s[,4]==1,4,0)
-clustering.6clus.300s[,5]<-ifelse(clustering.6clus.300s[,5]==1,5,0)
-clustering.6clus.300s[,6]<-ifelse(clustering.6clus.300s[,6]==1,6,0)
-
-ClusMembership.6clus.300s<-apply(clustering.6clus.300s,1,function(x) sum(x))
-ClusterRes.6clus.300s<-data.frame(group=c(1:23),
-                                  ClusMembership=ClusMembership.6clus.300s)
-
-countries<-data.frame(group=c(1:23),
-                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
-
-ClusterRes.6clus.300s<-merge(ClusterRes.6clus.300s, countries,
-                             by.x = "group", by.y = "group")
-
 
 
 ###########################################################################################
-######## Basic Model -- Full Metric CC Policy Support: SAM estimation and comparison ######
+############## Basic Model -- Policy Support: SAM estimation and comparison ###############
 ###########################################################################################
 
+
+#####----------------------------------------------------------------------------------------------------
+##Option A: CCPolSupport full metric with support 3 as the marker 
 ##First do the following step that is necessary for both 3-cluster and 6-cluster solution
 #
 ##extract the loadings and residual variances from HV 
@@ -3583,7 +3450,7 @@ lambda_HV_23cntry<-lapply(EST_HV, "[[", "lambda")
 theta_HV_23cntry<-lapply(EST_HV, "[[", "theta")
 #
 ##extract the loadings and residual variances from CCBelief
-EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit1.Marker, what = "est")
+EST_CCPolSupport<-lavInspect(CCPolSupport.FMetric.Fit1.MarkerSup3, what = "est")
 lambda_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","lambda")
 theta_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","theta")
 #
@@ -3646,42 +3513,39 @@ CCPolSupport_FREEsam_str_model<-'
 CCPolicySupport~SelfTran+Conser+SelfEnhan
 '
 
-CCPolSupport.FreeSAM<-cfa(model = CCPolSupport_FREEsam_str_model,
+CCPolSupport.FreeSAM.FM.Mark3<-cfa(model = CCPolSupport_FREEsam_str_model,
                         sample.cov = Var_eta,
                         sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/CCPolSupport_BasicModel_FreeSAM.txt")
-summary(CCPolSupport.FreeSAM, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/CCPolSupport_FM_markSup3_FreeSAM.txt")
+summary(CCPolSupport.FreeSAM.FM.Mark3, fit.measures=T, standardized=T)
 sink()
-
-
 
 ###Once we have the factor covariance matrix from step 1
 ##We can estimate the structural parameter for different cluster solution from now on:
-##
-##-------------------------------------------------------------------------------------------------------
-##3-cluster: 
-##cluster 1: group 1,2,3,4,5,7,8,9,10,15,17,18,20,22,23
-##cluster 2: group 6,11,12,13,14,19,21
-##cluster 3: group 16
 
-sam_CCPolSupport_3clus<-'
-CCPolicySupport~c(a1,a1,a1,a1,a1,a2,a1,a1,a1,a1,a2,a2,a2,a2,a1,a3,a1,a1,a2,a1,a2,a1,a1)*SelfTran+
-          c(b1,b1,b1,b1,b1,b2,b1,b1,b1,b1,b2,b2,b2,b2,b1,b3,b1,b1,b2,b1,b2,b1,b1)*Conser+
-          c(c1,c1,c1,c1,c1,c2,c1,c1,c1,c1,c2,c2,c2,c2,c1,c3,c1,c1,c2,c1,c2,c1,c1)*SelfEnhan
+##3-cluster: 
+##cluster 1: group 16
+##cluster 2: group 11,12,13,14,19,21
+##cluster 3: group 1,2,3,4,5,6,7,8,9,10,15,17,18,20,22,23
+
+sam_CCPolSupport_3clus_FMMark3<-'
+CCPolicySupport~c(a3,a3,a3,a3,a3,a3,a3,a3,a3,a3,a2,a2,a2,a2,a3,a1,a3,a3,a2,a3,a2,a3,a3)*SelfTran+
+                c(b3,b3,b3,b3,b3,b3,b3,b3,b3,b3,b2,b2,b2,b2,b3,b1,b3,b3,b2,b3,b2,b3,b3)*Conser+
+                c(c3,c3,c3,c3,c3,c3,c3,c3,c3,c3,c2,c2,c2,c2,c3,c1,c3,c3,c2,c3,c2,c3,c3)*SelfEnhan
 '
 
-CCPolSupport.SAM.3clus<-cfa(model = sam_CCPolSupport_3clus,
+CCPolSupport.SAM.3clus.FMMark3<-cfa(model = sam_CCPolSupport_3clus_FMMark3,
                           sample.cov = Var_eta,
                           sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/CCPolSupport_SAM_3clus.txt")
-summary(CCPolSupport.SAM.3clus, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/CCPolSupport_SAM_FMMark3_3clus.txt")
+summary(CCPolSupport.SAM.3clus.FMMark3, fit.measures=T, standardized=T)
 sink()
 
 
 ##faceted dot plot
-FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM.FM.Mark3)
 FreeSAM_reg_param<-FreeSAMparam %>%
   filter(op=="~") %>%
   select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
@@ -3699,8 +3563,8 @@ FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country,
                                          FreeSAM_reg_param$ClusMembership)
 
 vline_data <- data.frame(
-  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(0, -0.25, 0.5)                             # Line positions
+  Human.Values = c("Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(-0.20, 0.375)                             # Line positions
 )
 
 ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
@@ -3716,7 +3580,7 @@ ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
 
 
 ##3-D scatter plot
-FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM)
+FreeSAMparam<-parameterEstimates(CCPolSupport.FreeSAM.FM.Mark3)
 FreeSAM_reg_param<-FreeSAMparam %>%
   filter(op=="~") %>%
   select(lhs, rhs, group, est) %>%
@@ -3725,7 +3589,7 @@ FreeSAM_reg_param<-FreeSAMparam %>%
 FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.3clus, 
                          by.x = "group", by.y = "group")
 
-CCPolSupport_3clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+CCPolSupport_3clus_3D_FMMark3<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
         type = "scatter3d", mode="markers+text") %>%
   layout(title="SAM with clustering results - Human Values on Climate Change Policy Support",
          scene=list(xaxis=list(title="Self-Transcendence"),
@@ -3733,7 +3597,7 @@ CCPolSupport_3clus_3D<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~
                     zaxis=list(title="Self-Enhancement")))
 
 
-htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D), "CCPolSupport_3clus_3D.html")
+htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D_FMMark3), "CCPolSupport_3clus_3D_FMMark3.html")
 
 ##
 ##-------------------------------------------------------------------------------------------------------
@@ -4464,7 +4328,7 @@ lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.6clus.150s, RegSEM.BasicModel.HV.CC
 
 
 #####################################################################################
-############## CC Policy Support: Mapping the clustering results on Map  ############
+############### Full Metric CC Policy Support: Mapping   ############################
 #####################################################################################
 
 
@@ -4604,8 +4468,437 @@ ggplot(map_with_3clusters, aes(long, lat, group = group, fill = factor(ClusterCh
   theme_minimal()
 
 
+
 #####################################################################################
-########################## Mediation Model: MMGSEM  #################################
+############ Basic Model - Partial Metric policy support: MMGSEM  ###################
+#####################################################################################
+
+##First, take all the necessary measurement models and change to marker variable approach:
+#
+##Human Values without Openness to Change
+#
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+#sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit2_Marker.txt")
+#summary(NoOpen.HV.Metric.Fit2.Marker, fit.measures=T, standardized=T)
+#sink()
+
+##
+##climate change policy support
+##wide bound
+CCPolSupport.Metric.M2.Marker<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               bounds="wide",
+                                               group.equal="loadings",
+                                               group.partial=c("CCPolicySupport=~support3"))
+
+#sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
+#summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
+#sink()
+
+
+##Structural model
+Str_model<-'
+CCPolicySupport~SelfTran+Conser+SelfEnhan
+'
+
+##Model selection 
+BasicModel.PartCCPolSupport.Selection<-ModelSelection(dat=ESS8,
+                                                     S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M2.Marker),
+                                                     S2 = Str_model,
+                                                     group = "country",
+                                                     clusters=c(1,8),
+                                                     seed = 100,
+                                                     userStart = NULL,
+                                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit2.Marker.WideBound),
+                                                     max_it = 10000L,
+                                                     nstarts = 150L,
+                                                     printing = FALSE,
+                                                     partition = "hard",
+                                                     endogenous_cov = TRUE,
+                                                     endo_group_specific = TRUE,
+                                                     sam_method = "local",
+                                                     meanstr = FALSE,
+                                                     rescaling = F,
+                                                     missing="FIML")
+
+
+View(BasicModel.PartCCPolSupport.Selection$Overview)
+
+#
+##plot for CHull observed
+ggplot(BasicModel.PartCCPolSupport.Selection$Overview, aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+#
+##plot for CHull factor
+ggplot(BasicModel.PartCCPolSupport.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll factor")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+#
+##plot for BIC_G observed
+ggplot(BasicModel.PartCCPolSupport.Selection$Overview, aes(x=Clusters, y=BIC_G))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Observed")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+#
+##plot for BIC_G factor
+ggplot(BasicModel.PartCCPolSupport.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Factor")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+
+
+##3 clusters 150 random starts
+##change with imputation:
+PartCCPolSupport.3clus.150S.FIML<-MMGSEM(dat=ESS8,
+                                        S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.Metric.M2.Marker),
+                                        S2 = Str_model,
+                                        group = "country",
+                                        nclus=3,
+                                        seed = 100,
+                                        userStart = NULL,
+                                        s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.Metric.Fit2.Marker.WideBound),
+                                        max_it = 10000L,
+                                        nstarts = 150L,
+                                        printing = FALSE,
+                                        partition = "hard",
+                                        endogenous_cov = TRUE,
+                                        endo_group_specific = TRUE,
+                                        sam_method = "local",
+                                        meanstr = FALSE,
+                                        rescaling = F,
+                                        missing="FIML")
+
+
+#
+#3-cluster solution with imputation
+clustering.3clus<-t(apply(PartCCPolSupport.3clus.150S.FIML$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.3clus[,2]<-ifelse(clustering.3clus[,2]==1,2,0)
+clustering.3clus[,3]<-ifelse(clustering.3clus[,3]==1,3,0)
+
+ClusMembership.3clus<-apply(clustering.3clus,1,function(x) sum(x))
+ClusterRes.3clus<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.3clus)
+
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
+                        by.x = "group", by.y = "group")
+
+
+###########################################################################################
+####### Basic Model -- Partial Metric CC Policy Support: SAM estimation and comparison ####
+###########################################################################################
+
+##First do the following step that is necessary for both 3-cluster and 6-cluster solution
+#
+##extract the loadings and residual variances from HV 
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
+lambda_HV_23cntry<-lapply(EST_HV, "[[", "lambda")
+theta_HV_23cntry<-lapply(EST_HV, "[[", "theta")
+#
+##extract the loadings and residual variances from CCBelief
+EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit2.Marker.WideBound, what = "est")
+lambda_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","lambda")
+theta_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","theta")
+#
+##initialize empty list to store the new lambda matrix, new theta matrix and the mapping matrix
+lambda_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+theta_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+Mmatrix<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))){
+  ##put lambda from two measurement blocks into into the same matrix for each group
+  lambda_23cntry[[g]]<-lav_matrix_bdiag(lambda_HV_23cntry[[g]], lambda_CCPolSupport_23cntry[[g]])
+  colnames(lambda_23cntry[[g]])<-c(colnames(lambda_HV_23cntry[[g]]), colnames(lambda_CCPolSupport_23cntry[[g]]))
+  rownames(lambda_23cntry[[g]])<-c(rownames(lambda_HV_23cntry[[g]]), rownames(lambda_CCPolSupport_23cntry[[g]]))
+  
+  ##put theta from two measurement blocks into the same matrix for each group
+  theta_23cntry[[g]]<-lav_matrix_bdiag(theta_HV_23cntry[[g]],theta_CCPolSupport_23cntry[[g]])
+  colnames(theta_23cntry[[g]])<-c(colnames(theta_HV_23cntry[[g]]), colnames(theta_CCPolSupport_23cntry[[g]]))
+  rownames(theta_23cntry[[g]])<-c(rownames(theta_HV_23cntry[[g]]), rownames(theta_CCPolSupport_23cntry[[g]]))
+  
+  ##compute the mapping matrix for each group
+  Mmatrix[[g]]<-solve(t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]]) %*% lambda_23cntry[[g]]) %*% t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]])
+}
+#
+##run an empty sem to just extract the imputed sample covariance matrix
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCPolicySupport=~support2+support1+support3
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS8,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F)
+
+S<-fake@SampleStats@cov
+
+S<-lapply(S, function(x) {
+  colnames(x)<-rownames(x)<-colnames(fitted(fake)[[1]]$cov)
+  x
+})
+
+#
+##compute the factor covariance matrix for each group that will be used for the second step:
+Var_eta<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))) {
+  Var_eta[[g]]<-Mmatrix[[g]] %*% (S[[g]]-theta_23cntry[[g]]) %*% t(Mmatrix[[g]])
+}
+
+##In order to map the cluster solution, we also need to do a free SAM for all sorts of clustering solution:
+PartCCPolSupport_FREEsam_str_model<-'
+CCPolicySupport~SelfTran+Conser+SelfEnhan
+'
+
+PartCCPolSupport.FreeSAM<-cfa(model = PartCCPolSupport_FREEsam_str_model,
+                          sample.cov = Var_eta,
+                          sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/PartCCPolSupport_BasicModel_FreeSAM.txt")
+summary(PartCCPolSupport.FreeSAM, fit.measures=T, standardized=T)
+sink()
+
+
+##
+##-------------------------------------------------------------------------------------------------------
+##3-cluster with imputation (FIML): 
+##cluster 1: group 6,12,13,14,19,21,23
+##cluster 2: group 11,16
+##cluster 3: group 1,2,3,4,5,7,8,9,10,15,17,18,20,22
+
+sam_PartCCPolSupport_3clus_FIML<-'
+CCPolicySupport~c(a3,a3,a3,a3,a3,a1,a3,a3,a3,a3,a2,a1,a1,a1,a3,a2,a3,a3,a1,a3,a1,a3,a1)*SelfTran+
+                c(b3,b3,b3,b3,b3,b1,b3,b3,b3,b3,b2,b1,b1,b1,b3,b2,b3,b3,b1,b3,b1,b3,b1)*Conser+
+                c(c3,c3,c3,c3,c3,c1,c3,c3,c3,c3,c2,c1,c1,c1,c3,c2,c3,c3,c1,c3,c1,c3,c1)*SelfEnhan
+'
+
+PartCCPolSupport.SAM.3clus.FIML<-cfa(model = sam_PartCCPolSupport_3clus_FIML,
+                                 sample.cov = Var_eta,
+                                 sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/PartCCPolSupport_SAM_3clus_FIML.txt")
+summary(PartCCPolSupport.SAM.3clus.FIML, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(PartCCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.3clus, 
+                         by.x = "group", by.y = "group")
+
+##for better comparison with the previous results:
+##switch the label cluster 1 with cluster 3:
+#FreeSAM_reg_param<-FreeSAM_reg_param %>%
+#  mutate(NewClus=4-(ClusMembership)) %>%
+#  arrange(NewClus)
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.2, 0.35)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM - Human Values on Climate Change Policy Support - FIML",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(PartCCPolSupport.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.3clus, 
+                         by.x = "group", by.y = "group")
+
+PartCCPolSupport_3clus_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                    type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 3 clusters FIML - Human Values on Climate Change Policy Support (Partial Metric Invariance)",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+#htmlwidgets::saveWidget(as_widget(CCPolSupport_3clus_3D_FIML), "CCPolSupport_3clus_3D_FIML.html")
+htmlwidgets::saveWidget(as_widget(PartCCPolSupport_3clus_3D_FIML), "PartCCPolSupport_3clus_3D_FIML.html")
+
+#####################################################################################
+######### Basic Model - Partial Metric CC Policy Support: Simultaneously MGSEM #########
+#####################################################################################
+
+##MGSEM with constrains within clusters:
+BasicModel.HV.PartCCPolSupport.3Clus<-'
+##human values
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+##Climate Change Belief
+CCPolicySupport=~support2+support1+support3
+
+##Structural Model:
+CCPolicySupport~c(a3,a3,a3,a3,a3,a1,a3,a3,a3,a3,a2,a1,a1,a1,a3,a2,a3,a3,a1,a3,a1,a3,a1)*SelfTran+
+                c(b3,b3,b3,b3,b3,b1,b3,b3,b3,b3,b2,b1,b1,b1,b3,b2,b3,b3,b1,b3,b1,b3,b1)*Conser+
+                c(c3,c3,c3,c3,c3,c1,c3,c3,c3,c3,c2,c1,c1,c1,c3,c2,c3,c3,c1,c3,c1,c3,c1)*SelfEnhan
+'
+
+##run regular MGSEM:
+RegSEM.BasicModel.HV.PartCCPolSupport.3clus<-cfa(model = BasicModel.HV.PartCCPolSupport.3Clus,
+                                             data = ESS8,
+                                             group = "country",
+                                             estimator="MLR",
+                                             missing="FIML",
+                                             group.equal="loadings",
+                                             group.partial=c("SelfEnhan=~SE3", "CCPolicySupport=~support3"),
+                                             bounds="wide")
+
+sink("./Sink Output/ESS8/PartCCPolSupport_BasicModel_RegMGSEM_3clus.txt")
+summary(RegSEM.BasicModel.HV.PartCCPolSupport.3clus, fit.measures=T, standardized=T)
+sink()
+
+
+#####################################################################################
+########### Partial Metric CC Policy Support: Mapping ###############################
+#####################################################################################
+
+###----------------------------------------------------------------------------------
+##3 cluster solution - FIML:
+
+##take out the world map
+world_map<-map_data("world")
+
+##filter to be a eu map:
+eu_countries <- c(
+  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", 
+  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", 
+  "Ireland", "Iceland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", 
+  "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia",
+  "Slovakia", "Slovenia", "Switzerland",
+  "Spain", "Sweden", "UK", "Israel",
+  "Turkey", "Lebanon", "Jordan", "Egypt", "Syria",
+  "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Moldova"
+)
+
+eu_map <- world_map %>%
+  filter(region %in% eu_countries)
+
+##add a new column called region to match the country names with the world map data country names
+ClusterRes.3clus<-ClusterRes.3clus %>%
+  mutate(region=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czech Republic",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "UK",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ "Lithuania",
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  )) %>%
+  select(ClusMembership, region)
+
+##merge the data:
+map_with_3clusters <- eu_map %>%
+  left_join(ClusterRes.3clus, by = "region")
+
+##add a column to differentiate the cluster characteristics:
+map_with_3clusters<-map_with_3clusters %>%
+  mutate(ClusterChar=case_when(
+    ClusMembership==1~"weak ST_Con",
+    ClusMembership==2~"Outlier - LT & HU",
+    ClusMembership==3~"strong ST_con"
+  ))
+
+##lay out on the map:
+ggplot(map_with_3clusters, aes(long, lat, group = group, fill = factor(ClusterChar))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "Cluster"
+  ) +
+  theme_minimal()
+
+
+
+
+#####################################################################################
+############## Mediation Model: MMGSEM (full metric CCPolSupport) ###################
 #####################################################################################
 
 ###Human values: marker approach:
@@ -4651,7 +4944,7 @@ CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
 
 ##
 ##climate change policy support
-##(full) metric Invariance Model 1:
+##(full) metric Invariance Model 1 with support 3 as marker:
 CCPolSupport.Metric.M1.Marker<-'
 CCPolicySupport=~support3+support1+support2
 '
@@ -4666,6 +4959,20 @@ CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
 #sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_Marker.txt")
 #summary(CCPolSupport.Metric.Fit1.Marker, fit.measures=T, standardized=T)
 #sink()
+
+##
+##climate change policy support
+##(full) metric Invariance Model 1 with support 2 as marker:
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
 
 ##specify the structural model:
 Str_model<-'
@@ -4893,9 +5200,9 @@ ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
 
 
 
-#####################################################################################
-################### Mediation Model: SAM estimation and comparison ##################
-#####################################################################################
+##########################################################################################################
+############## Mediation Model (full metric CCPolSupport): SAM estimation and comparison #################
+##########################################################################################################
 
 ##First do the following step that is necessary for all clusters solution
 #
@@ -5057,6 +5364,11 @@ Mediation.FreeSAM<-cfa(model = Mediation_FREEsam_str_model,
                           sample.nobs = lavInspect(fake, "nobs"))
 
 sink("./Sink Output/ESS8/Mediation_FreeSAM.txt")
+summary(Mediation.FreeSAM, fit.measures=T, standardized=T)
+sink()
+
+##sink the output for the support2 as marker variable:
+sink("./Sink Output/ESS8/Mediation_FreeSAM2.txt")
 summary(Mediation.FreeSAM, fit.measures=T, standardized=T)
 sink()
 
@@ -5289,6 +5601,12 @@ sink("./Sink Output/ESS8/Mediation_SAM_5clus_150s.txt")
 summary(Mediation.SAM.5clus.150s, fit.measures=T, standardized=T)
 sink()
 
+
+##using support2 as marker:
+sink("./Sink Output/ESS8/Mediation_SAM2_5clus_150s.txt")
+summary(Mediation.SAM.5clus.150s, fit.measures=T, standardized=T)
+sink()
+
 ##-------------------------------------------------------------------------------------------------------
 ####facet plotting
 #
@@ -5317,7 +5635,7 @@ HVDirect.param$country <- fct_reorder(HVDirect.param$country,
 
 vline_data <- data.frame(
   Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(0, -0.12, 0.12)                             # Line positions
+  xintercept = c(0, -0.15, 0.13)                             # Line positions
 )
 
 ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
@@ -5346,7 +5664,7 @@ CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country,
 ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
-  geom_vline(xintercept = c(0.5,0.75), color="red", linetype="dashed")+
+  geom_vline(xintercept = 0.46, color="red", linetype="dashed")+
   labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
@@ -5379,8 +5697,8 @@ HVIndirect.par$country <- fct_reorder(HVIndirect.par$country,
                                       HVIndirect.par$ClusMembership)
 
 vline_data <- data.frame(
-  human_values = c("Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(-0.13, 0.20)                             # Line positions
+  human_values = c("Conservation","Self-Enhancement","Self-Transcendence"), # Facet names
+  xintercept = c(-0.1, 0, 0.18)                             # Line positions
 )
 
 ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
@@ -5420,7 +5738,7 @@ HVDirect_5clus_3D<-plot_ly(HVDirect_reg_param, x= ~SelfTran, y= ~Conser, z= ~Sel
 
 
 htmlwidgets::saveWidget(as_widget(HVDirect_5clus_3D), "HVDirect_5clus_3D.html")
-
+htmlwidgets::saveWidget(as_widget(HVDirect_5clus_3D), "HVDirect2_5clus_3D.html")
 
 ##3D plot for the indirect effect of HV:
 HVIndirect.RegPar<-FreeSAMparam %>%
@@ -5448,6 +5766,7 @@ HVIndirect_5clus_3D<-plot_ly(HVIndirect.RegPar, x= ~SelfTran, y= ~Conser, z= ~Se
                     zaxis=list(title="Self-Enhancement")))
 
 htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_3D), "HVIndirect_5clus_3D.html")
+htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_3D), "HVIndirect2_5clus_3D.html")
 
 
 ##-------------------------------------------------------------------------------------------------------
@@ -5509,14 +5828,15 @@ HVIndirect_5clus_Clus1_Clus4_3D<-plot_ly(HVIndirect.RegPar.Clus1Clus4, x= ~SelfT
                     zaxis=list(title="Self-Enhancement")))
 
 htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_Clus1_Clus4_3D), "HVIndirect_5clus_Clus1_Clus4_3D.html")
+htmlwidgets::saveWidget(as_widget(HVIndirect_5clus_Clus1_Clus4_3D), "HVIndirect2_5clus_Clus1_Clus4_3D.html")
 
-#####################################################################################
-################ Mediation: Simultaneous MMGSEM estimation ##########################
-#####################################################################################
+##############################################################################################################
+################ Mediation (full metri CCPolSupport): Simultaneous MGSEM estimation ##########################
+##############################################################################################################
 
 
 ##5-cluster solution:
-RegSEM_5clus<-'
+Mediation_RegSEM_5clus_model<-'
 SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
 Conser=~C2+C1+C3+C4+C5+C6+SE4
 SelfEnhan=~SE2+SE1+SE3+SE4+C1
@@ -5526,7 +5846,7 @@ C5~~C6
 
 CCBelief=~ImpactBelief+TrendBelief+AttriBelief
 
-CCPolicySupport=~support3+support1+support2
+CCPolicySupport=~support2+support1+support3
 
 CCBelief~c(a1,a3,a3,a1,a3,a3,a1,a3,a3,a3,a4,a4,a2,a2,a1,a5,a3,a3,a3,a3,a4,a3,a3)*SelfTran+
           c(b1,b3,b3,b1,b3,b3,b1,b3,b3,b3,b4,b4,b2,b2,b1,b5,b3,b3,b3,b3,b4,b3,b3)*Conser+
@@ -5538,7 +5858,7 @@ CCPolicySupport~c(d1,d3,d3,d1,d3,d3,d1,d3,d3,d3,d4,d4,d2,d2,d1,d5,d3,d3,d3,d3,d4
                 c(g1,g3,g3,g1,g3,g3,g1,g3,g3,g3,g4,g4,g2,g2,g1,g5,g3,g3,g3,g3,g4,g3,g3)*SelfEnhan
 '
 
-RegSEM.Mediation.5Clus<-cfa(model = RegSEM_5clus,
+RegSEM.Mediation.5Clus<-cfa(model = Mediation_RegSEM_5clus_model,
                                              data = ESS8,
                                              group = "country",
                                              estimator="MLR",
@@ -5550,14 +5870,14 @@ sink("./Sink Output/ESS8/JustFOrRun.txt")
 summary(RegSEM.Mediation.5Clus, fit.measures=T, standardized=T)
 sink()
 
-sink("./Sink Output/ESS8/Mediation_RegMGSEM_5clus.txt")
+sink("./Sink Output/ESS8/Mediation_FullMCCPolSup_RegMGSEM_5clus.txt")
 summary(RegSEM.Mediation.5Clus, fit.measures=T, standardized=T)
 sink()
 
 
 
 #####################################################################################
-############## Mediation Mapping: Mapping the clustering results on Map  ############
+############## Mediation (full metric CCPolSupport): Mapping ########################
 #####################################################################################
 
 
@@ -5623,6 +5943,600 @@ ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(Clus
     fill = "Cluster"
   ) +
   theme_minimal()
+
+
+#####################################################################################
+############## Mediation Model: MMGSEM (Partial metric CCPolSupport) ###################
+#####################################################################################
+
+###Human values: marker approach:
+#
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+#sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit2_Marker.txt")
+#summary(NoOpen.HV.Metric.Fit2.Marker, fit.measures=T, standardized=T)
+#sink()
+
+#
+##Climate Change Belief
+#
+CCBelief.Metric.M1.Marker<-'
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
+                                 data = ESS8,
+                                 group = "country",
+                                 estimator="MLR",
+                                 missing="FIML",
+                                 group.equal="loadings")
+
+
+
+##
+##climate change policy support
+##wide bound
+CCPolSupport.Metric.M2.Marker<-'
+##constrain the loadings to be equal across group
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               bounds="wide",
+                                               group.equal="loadings",
+                                               group.partial=c("CCPolicySupport=~support3"))
+
+#sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
+#summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
+#sink()
+
+
+##specify the structural model:
+Str_model<-'
+CCBelief~SelfTran+Conser+SelfEnhan
+
+CCPolicySupport~CCBelief+SelfTran+Conser+SelfEnhan
+'
+
+##Model selection:
+MediationModel.PartCCPol.Selection<-ModelSelection(dat=ESS8,
+                                         S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M2.Marker),
+                                         S2 = Str_model,
+                                         group = "country",
+                                         clusters=c(1,8),
+                                         seed = 100,
+                                         userStart = NULL,
+                                         s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit2.Marker.WideBound),
+                                         max_it = 10000L,
+                                         nstarts = 150L,
+                                         printing = FALSE,
+                                         partition = "hard",
+                                         endogenous_cov = TRUE,
+                                         endo_group_specific = TRUE,
+                                         sam_method = "local",
+                                         meanstr = FALSE,
+                                         rescaling = F,
+                                         missing="FIML")
+
+View(MediationModel.PartCCPol.Selection$Overview)
+
+##CHull expected value for the 2-clusters solution:
+(-1311938)+(771-763)*(-1311764-(-1311938))/(779-763)
+#-1311851
+
+a<-MediationModel.Selection$Overview
+a[2,3]<--1311850
+
+#
+##plot for adjusted CHull observed
+ggplot(a, aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "Adjusted CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+
+#
+##plot for CHull observed
+ggplot(MediationModel.PartCCPol.Selection$Overview, aes(x=nrpar, y=LL)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll observed")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+
+#
+##plot for CHull factor
+ggplot(MediationModel.PartCCPol.Selection$Overview, aes(x=nrpar_fac, y=LL_fac)) +
+  geom_point()+
+  geom_line()+
+  labs(title = "CHUll factor")+xlab("number of parameters")+ylab("Log-Likelihood")+
+  theme_minimal()
+#
+##plot for BIC_G observed
+ggplot(MediationModel.PartCCPol.Selection$Overview, aes(x=Clusters, y=BIC_G))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Observed")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+#
+##plot for BIC_G factor
+ggplot(MediationModel.PartCCPol.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
+  geom_point()+geom_line()+
+  labs(title = "BIC_G Factor")+xlab("Number of Clusters")+ylab("BIC_G")+
+  theme_minimal()
+
+
+
+#
+#5 clusters - 150s:
+Mediation.PartCCPol.5clus.150S<-MMGSEM(dat=ESS8,
+                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M2.Marker),
+                             S2 = Str_model,
+                             group = "country",
+                             nclus=5,
+                             seed = 100,
+                             userStart = NULL,
+                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit2.Marker.WideBound),
+                             max_it = 10000L,
+                             nstarts = 150L,
+                             printing = FALSE,
+                             partition = "hard",
+                             endogenous_cov = TRUE,
+                             endo_group_specific = TRUE,
+                             sam_method = "local",
+                             meanstr = FALSE,
+                             rescaling = F,
+                             missing="FIML")
+
+#
+#test 6 clusters - 150s:
+Mediation.PartCCPol.6clus.150S<-MMGSEM(dat=ESS8,
+                                       S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.Metric.M2.Marker),
+                                       S2 = Str_model,
+                                       group = "country",
+                                       nclus=6,
+                                       seed = 100,
+                                       userStart = NULL,
+                                       s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.Metric.Fit2.Marker.WideBound),
+                                       max_it = 10000L,
+                                       nstarts = 150L,
+                                       printing = FALSE,
+                                       partition = "hard",
+                                       endogenous_cov = TRUE,
+                                       endo_group_specific = TRUE,
+                                       sam_method = "local",
+                                       meanstr = FALSE,
+                                       rescaling = F,
+                                       missing="FIML")
+
+
+#
+#5-cluster solution - 150 starts
+clustering.5clus.150s<-t(apply(Mediation.PartCCPol.5clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus.150s[,2]<-ifelse(clustering.5clus.150s[,2]==1,2,0)
+clustering.5clus.150s[,3]<-ifelse(clustering.5clus.150s[,3]==1,3,0)
+clustering.5clus.150s[,4]<-ifelse(clustering.5clus.150s[,4]==1,4,0)
+clustering.5clus.150s[,5]<-ifelse(clustering.5clus.150s[,5]==1,5,0)
+ClusMembership.5clus.150s<-apply(clustering.5clus.150s,1,function(x) sum(x))
+ClusterRes.5clus.150s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.5clus.150s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
+                             by.x = "group", by.y = "group")
+
+
+
+#
+#6-cluster solution - 150 starts
+Clustering.6clus.150s<-t(apply(Mediation.PartCCPol.6clus.150S$posteriors,1,function(x) as.numeric(x==max(x))))
+Clustering.6clus.150s[,2]<-ifelse(Clustering.6clus.150s[,2]==1,2,0)
+Clustering.6clus.150s[,3]<-ifelse(Clustering.6clus.150s[,3]==1,3,0)
+Clustering.6clus.150s[,4]<-ifelse(Clustering.6clus.150s[,4]==1,4,0)
+Clustering.6clus.150s[,5]<-ifelse(Clustering.6clus.150s[,5]==1,5,0)
+Clustering.6clus.150s[,6]<-ifelse(Clustering.6clus.150s[,6]==1,6,0)
+ClusMembership.6clus.150s<-apply(Clustering.6clus.150s,1,function(x) sum(x))
+ClusterRes.6clus.150s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.6clus.150s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus.150s<-merge(ClusterRes.6clus.150s, countries,
+                             by.x = "group", by.y = "group")
+
+
+
+##########################################################################################################
+############## Mediation Model (partial metric CCPolSupport): SAM estimation and comparison #################
+##########################################################################################################
+
+##First do the following step that is necessary for all clusters solution
+#
+##extract the loadings and residual variances from HV 
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
+lambda_HV_23cntry<-lapply(EST_HV, "[[", "lambda")
+theta_HV_23cntry<-lapply(EST_HV, "[[", "theta")
+#
+##extract the loadings and residual variances from CCBelief
+EST_CCBelief<-lavInspect(CCBelief.Metric.Fit1.Marker, what = "est")
+lambda_CCBelief_23cntry<-lapply(EST_CCBelief, "[[","lambda")
+theta_CCBelief_23cntry<-lapply(EST_CCBelief, "[[","theta")
+#
+##extract the loadings and residual variances from CCPolSupport
+EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit2.Marker.WideBound, what = "est")
+lambda_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","lambda")
+theta_CCPolSupport_23cntry<-lapply(EST_CCPolSupport, "[[","theta")
+#
+##initialize empty list to store the new lambda matrix, new theta matrix and the mapping matrix
+lambda_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+theta_23cntry<-vector(mode = "list", length=length(unique(ESS8$country)))
+Mmatrix<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))){
+  ##put lambda from two measurement blocks into into the same matrix for each group
+  lambda_23cntry[[g]]<-lav_matrix_bdiag(lambda_HV_23cntry[[g]], lambda_CCBelief_23cntry[[g]], lambda_CCPolSupport_23cntry[[g]])
+  colnames(lambda_23cntry[[g]])<-c(colnames(lambda_HV_23cntry[[g]]),colnames(lambda_CCBelief_23cntry[[g]]), colnames(lambda_CCPolSupport_23cntry[[g]]))
+  rownames(lambda_23cntry[[g]])<-c(rownames(lambda_HV_23cntry[[g]]),rownames(lambda_CCBelief_23cntry[[g]]), rownames(lambda_CCPolSupport_23cntry[[g]]))
+  
+  ##put theta from two measurement blocks into the same matrix for each group
+  theta_23cntry[[g]]<-lav_matrix_bdiag(theta_HV_23cntry[[g]],theta_CCBelief_23cntry[[g]],theta_CCPolSupport_23cntry[[g]])
+  colnames(theta_23cntry[[g]])<-c(colnames(theta_HV_23cntry[[g]]),colnames(theta_CCBelief_23cntry[[g]]), colnames(theta_CCPolSupport_23cntry[[g]]))
+  rownames(theta_23cntry[[g]])<-c(rownames(theta_HV_23cntry[[g]]),rownames(theta_CCBelief_23cntry[[g]]), rownames(theta_CCPolSupport_23cntry[[g]]))
+  
+  ##compute the mapping matrix for each group
+  Mmatrix[[g]]<-solve(t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]]) %*% lambda_23cntry[[g]]) %*% t(lambda_23cntry[[g]]) %*% solve(theta_23cntry[[g]])
+}
+
+#
+##run an empty sem to just extract the imputed sample covariance matrix
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+CCPolicySupport=~support3+support1+support2
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS8,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F)
+
+S<-fake@SampleStats@cov
+
+S<-lapply(S, function(x) {
+  colnames(x)<-rownames(x)<-colnames(fitted(fake)[[1]]$cov)
+  x
+})
+
+#
+##compute the factor covariance matrix for each group that will be used for the second step:
+Var_eta<-vector(mode = "list", length = length(unique(ESS8$country)))
+
+for (g in 1:length(unique(ESS8$country))) {
+  Var_eta[[g]]<-Mmatrix[[g]] %*% (S[[g]]-theta_23cntry[[g]]) %*% t(Mmatrix[[g]])
+}
+
+##In order to map the cluster solution, we also need to do a free SAM for all sorts of clustering solution:
+Mediation_FREEsam_str_model<-'
+CCBelief~c(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23)*SelfTran+
+          c(b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13,b14,b15,b16,b17,b18,b19,b20,b21,b22,b23)*Conser+
+          c(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23)*SelfEnhan
+
+CCPolicySupport~c(d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13,d14,d15,d16,d17,d18,d19,d20,d21,d22,d23)*CCBelief+SelfTran+Conser+SelfEnhan
+
+STindirect_g1:=a1*d1
+STindirect_g2:=a2*d2
+STindirect_g3:=a3*d3
+STindirect_g4:=a4*d4
+STindirect_g5:=a5*d5
+STindirect_g6:=a6*d6
+STindirect_g7:=a7*d7
+STindirect_g8:=a8*d8
+STindirect_g9:=a9*d9
+STindirect_g10:=a10*d10
+STindirect_g11:=a11*d11
+STindirect_g12:=a12*d12
+STindirect_g13:=a13*d13
+STindirect_g14:=a14*d14
+STindirect_g15:=a15*d15
+STindirect_g16:=a16*d16
+STindirect_g17:=a17*d17
+STindirect_g18:=a18*d18
+STindirect_g19:=a19*d19
+STindirect_g20:=a20*d20
+STindirect_g21:=a21*d21
+STindirect_g22:=a22*d22
+STindirect_g23:=a23*d23
+
+ConIndirect_g1:=b1*d1
+ConIndirect_g2:=b2*d2
+ConIndirect_g3:=b3*d3
+ConIndirect_g4:=b4*d4
+ConIndirect_g5:=b5*d5
+ConIndirect_g6:=b6*d6
+ConIndirect_g7:=b7*d7
+ConIndirect_g8:=b8*d8
+ConIndirect_g9:=b9*d9
+ConIndirect_g10:=b10*d10
+ConIndirect_g11:=b11*d11
+ConIndirect_g12:=b12*d12
+ConIndirect_g13:=b13*d13
+ConIndirect_g14:=b14*d14
+ConIndirect_g15:=b15*d15
+ConIndirect_g16:=b16*d16
+ConIndirect_g17:=b17*d17
+ConIndirect_g18:=b18*d18
+ConIndirect_g19:=b19*d19
+ConIndirect_g20:=b20*d20
+ConIndirect_g21:=b21*d21
+ConIndirect_g22:=b22*d22
+ConIndirect_g23:=b23*d23
+
+SEindirect_g1:=c1*d1
+SEindirect_g2:=c2*d2
+SEindirect_g3:=c3*d3
+SEindirect_g4:=c4*d4
+SEindirect_g5:=c5*d5
+SEindirect_g6:=c6*d6
+SEindirect_g7:=c7*d7
+SEindirect_g8:=c8*d8
+SEindirect_g9:=c9*d9
+SEindirect_g10:=c10*d10
+SEindirect_g11:=c11*d11
+SEindirect_g12:=c12*d12
+SEindirect_g13:=c13*d13
+SEindirect_g14:=c14*d14
+SEindirect_g15:=c15*d15
+SEindirect_g16:=c16*d16
+SEindirect_g17:=c17*d17
+SEindirect_g18:=c18*d18
+SEindirect_g19:=c19*d19
+SEindirect_g20:=c20*d20
+SEindirect_g21:=c21*d21
+SEindirect_g22:=c22*d22
+SEindirect_g23:=c23*d23
+'
+
+Mediation.FreeSAM<-cfa(model = Mediation_FREEsam_str_model,
+                       sample.cov = Var_eta,
+                       sample.nobs = lavInspect(fake, "nobs"))
+
+##sink the output for the support2 as marker variable and partial metric invariance:
+sink("./Sink Output/ESS8/Mediation_PartCCPol_FreeSAM2.txt")
+summary(Mediation.FreeSAM, fit.measures=T, standardized=T)
+sink()
+
+
+##-------------------------------------------------------------------------------------------------------
+##-------------------------------------------------------------------------------------------------------
+##5-cluster (150 random starts): 
+##cluster 1: group 1,4,6,7,12,15,19,21,23
+##cluster 2: group 16,20
+##cluster 3: group 11
+##cluster 4: group 13,14
+##cluster 5: group 2,3,5,8,9,10,17,18,22
+
+sam_mediation_PartCCPol_5clus_150s<-'
+CCBelief~c(a1,a5,a5,a1,a5,a1,a1,a5,a5,a5,a3,a1,a4,a4,a1,a2,a5,a5,a1,a2,a1,a5,a1)*SelfTran+
+         c(b1,b5,b5,b1,b5,b1,b1,b5,b5,b5,b3,b1,b4,b4,b1,b2,b5,b5,b1,b2,b1,b5,b1)*Conser+
+          c(c1,c5,c5,c1,c5,c1,c1,c5,c5,c5,c3,c1,c4,c4,c1,c2,c5,c5,c1,c2,c1,c5,c1)*SelfEnhan
+
+CCPolicySupport~c(d1,d5,d5,d1,d5,d1,d1,d5,d5,d5,d3,d1,d4,d4,d1,d2,d5,d5,d1,d2,d1,d5,d1)*CCBelief+
+                c(e1,e5,e5,e1,e5,e1,e1,e5,e5,e5,e3,e1,e4,e4,e1,e2,e5,e5,e1,e2,e1,e5,e1)*SelfTran+
+                c(f1,f5,f5,f1,f5,f1,f1,f5,f5,f5,f3,f1,f4,f4,f1,f2,f5,f5,f1,f2,f1,f5,f1)*Conser+
+                c(g1,g5,g5,g1,g5,g1,g1,g5,g5,g5,g3,g1,g4,g4,g1,g2,g5,g5,g1,g2,g1,g5,g1)*SelfEnhan
+'
+
+Mediation.PartCCPol.SAM.5clus.150s<-cfa(model = sam_mediation_PartCCPol_5clus_150s,
+                              sample.cov = Var_eta,
+                              sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/Mediation_SAM_PartCCPol_5clus_150s.txt")
+summary(Mediation.PartCCPol.SAM.5clus.150s, fit.measures=T, standardized=T)
+sink()
+
+
+##-------------------------------------------------------------------------------------------------------
+####facet plotting
+#
+##first extract all the estimate:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM)
+
+
+##Facet plot for the direct effect of the 3 human values on CCPolicySupport
+#
+#make a table with direct effect of the 3 human values on CCPolicySupport
+HVDirect.param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+HVDirect.param<-merge(HVDirect.param, ClusterRes.5clus.150s, 
+                      by.x = "group", by.y = "group")
+
+HVDirect.param$country <- fct_reorder(HVDirect.param$country, 
+                                      HVDirect.param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation"), # Facet names
+  xintercept = c(0, -0.125)                             # Line positions
+)
+
+ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="blue", linetype="dashed")+
+  labs(title = "SAM - Direct Effects of Human Values on CC Policy Support after controlling for CC Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for only the effect of CCBelief on CCPolicySupport
+CCBelief_regPar<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.5clus.150s, 
+                       by.x = "group", by.y = "group")
+
+CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
+                                       CCBelief_regPar$ClusMembership)
+
+ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  geom_vline(xintercept = c(0.125,0.48), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for the indirect effect of the 3 human values on CCPolicySupport VIA CCBelief
+HVIndirect.par<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.par$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.par$lhs))
+
+HVIndirect.par<-HVIndirect.par %>%
+  select(lhs, group, est, ci.lower, ci.upper)
+
+HVIndirect.par$human_values <- gsub("_g.*", "", HVIndirect.par$lhs)
+
+HVIndirect.par<-HVIndirect.par %>%
+  mutate(human_values=case_when(
+    human_values=="STindirect"~"Self-Transcendence",
+    human_values=="ConIndirect"~"Conservation",
+    human_values=="SEindirect"~"Self-Enhancement"
+  ))
+
+HVIndirect.par<-merge(HVIndirect.par, ClusterRes.5clus.150s, 
+                      by.x = "group", by.y = "group")
+
+HVIndirect.par$country <- fct_reorder(HVIndirect.par$country, 
+                                      HVIndirect.par$ClusMembership)
+
+vline_data <- data.frame(
+  human_values = c("Self-Enhancement"), # Facet names
+  xintercept = c(0)                             # Line positions
+)
+
+ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~human_values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="blue", linetype="dashed")+
+  labs(title = "SAM Indirect Effects of Human Values on CC Policy Support via CCBelief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
+#####################################################################################
+############## Mediation (partial metric CCPolSupport): Mapping ########################
+#####################################################################################
+
+
+###----------------------------------------------------------------------------------
+##5 cluster solution:
+
+##take out the world map
+world_map<-map_data("world")
+
+##filter to be a eu map:
+eu_countries <- c(
+  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", 
+  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", 
+  "Ireland", "Iceland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", 
+  "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia",
+  "Slovakia", "Slovenia", "Switzerland",
+  "Spain", "Sweden", "UK", "Israel",
+  "Turkey", "Lebanon", "Jordan", "Egypt", "Syria",
+  "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Moldova"
+)
+
+eu_map <- world_map %>%
+  filter(region %in% eu_countries)
+
+##add a new column called region to match the country names with the world map data country names
+ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
+  mutate(region=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czech Republic",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "UK",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ "Lithuania",
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  )) %>%
+  select(ClusMembership, region)
+
+##merge the data:
+map_with_5clusters.150s <- eu_map %>%
+  left_join(ClusterRes.5clus.150s, by = "region")
+
+##lay out on the map:
+ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(ClusMembership))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "Cluster"
+  ) +
+  theme_minimal()
+
+
+
 
 
 
@@ -6165,7 +7079,7 @@ SelfEnhan=~SE2+SE1+SE3+SE4+C1
 ##Add Error Term Correlation
 C5~~C6
 
-CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+CCPolicySupport=~support2+support1+support3
 '
 
 fake<-cfa(model = fake_model,
@@ -6189,5 +7103,665 @@ CCPolSupport.SI.3clus.fit<-cfa(model = SI_CCPolSupportModel_3clus,
 
 sink("./Sink Output/ESS8/CCPolSupport_BasicModel_SingleIndicator_3clus_noLT.txt")
 summary(CCPolSupport.SI.3clus.fit, fit.measures=T, standardized=T)
+sink()
+
+
+
+
+#####################################################################################
+##### Single Indicator Approach for Basic Model: Partial Metric CCPolSupport ###########
+#####################################################################################
+
+###------------------------------------------------------------------------------------
+##Start with the Human Values model:
+#
+##Original model with cross-loadings and allow covariance between factors are as below:
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
+Phi_HV<-lapply(EST_HV, "[[", "psi")
+lambda_HV<-lapply(EST_HV, "[[","lambda")
+theta_HV<-lapply(EST_HV, "[[","theta")
+
+##Take only the diagonal from the Phi_HV matrix:
+Phi_HV<-lapply(Phi_HV, function(x) diag(diag(x)))
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_HV_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_HV[[g]]<-solve(solve(Phi_HV[[g]])+t(lambda_HV[[g]]) %*% solve(theta_HV[[g]]) %*% lambda_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(theta_HV[[g]])
+  
+  ##factor scores
+  y_HV_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_HV[[g]])]
+  FactorScores_HV[[g]]<-AR_Matrix_HV[[g]] %*% t(y_HV_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_HV[[g]]<-lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]])+theta_HV[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_HV[[g]]<-Phi_HV[[g]]-t(Phi_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(ModelImplied_Sigma_HV[[g]]) %*% lambda_HV[[g]] %*% Phi_HV[[g]]
+}
+
+##Take only the diagonal of the Posterior Varf for the next step:
+Posterior_Varf_HV<-lapply(Posterior_Varf_HV, function(x) diag(diag(x)))
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_HV[[g]]<-cov(t(FactorScores_HV[[g]]), use = "pairwise.complete.obs")
+}
+
+##Take only the diagonal of the var(f)
+Var_f_HV<-lapply(Var_f_HV, function(x) diag(diag(x)))
+
+
+##compute the true factor variance 
+TruePhi_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_HV[[g]]<-Var_f_HV[[g]]+Posterior_Varf_HV[[g]]
+}
+
+##compute the ρ:
+Rho_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_HV[[g]]<-Var_f_HV[[g]]%*% solve(TruePhi_HV[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_HV[[g]]<-TruePhi_HV[[g]] %*% Rho_HV[[g]] %*% (diag(1, nrow = 3, ncol = 3)-Rho_HV[[g]])
+  
+}
+
+
+
+###------------------------------------------------------------------------------------
+##Repeat the same steps with the partial metric Climate Change Policy Support:
+CCPolSupport.Metric.M2.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Marker,
+                                               data = ESS8,
+                                               group = "country",
+                                               estimator="MLR",
+                                               missing="FIML",
+                                               bounds="wide",
+                                               group.equal="loadings",
+                                               group.partial=c("CCPolicySupport=~support3"))
+
+
+
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit2.Marker.WideBound, what = "est")
+Phi_CCPolSupport<-lapply(EST_CCPolSupport, "[[", "psi")
+lambda_CCPolSupport<-lapply(EST_CCPolSupport, "[[","lambda")
+theta_CCPolSupport<-lapply(EST_CCPolSupport, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_CCPolSupport_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_CCPolSupport[[g]]<-solve(solve(Phi_CCPolSupport[[g]])+t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]])
+  
+  ##factor scores
+  y_CCPolSupport_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_CCPolSupport[[g]])]
+  FactorScores_CCPolSupport[[g]]<-AR_Matrix_CCPolSupport[[g]] %*% t(y_CCPolSupport_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_CCPolSupport[[g]]<-lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]] %*% t(lambda_CCPolSupport[[g]])+theta_CCPolSupport[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_CCPolSupport[[g]]<-Phi_CCPolSupport[[g]]-t(Phi_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(ModelImplied_Sigma_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]]
+}
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_CCPolSupport[[g]]<-cov(t(FactorScores_CCPolSupport[[g]]), use = "pairwise.complete.obs")
+}
+
+
+##compute the true factor variance 
+TruePhi_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]+Posterior_Varf_CCPolSupport[[g]]
+}
+
+##compute the ρ:
+Rho_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]%*% solve(TruePhi_CCPolSupport[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_CCPolSupport[[g]]<-TruePhi_CCPolSupport[[g]] * Rho_CCPolSupport[[g]] %*% (diag(1, nrow = 1, ncol = 1)-Rho_CCPolSupport[[g]])
+  
+}
+
+
+
+###------------------------------------------------------------------------------------
+##At this point, we need to put each pair together in the same matrix:
+#Rho_HV, Rho_CCPolSupport --> Rho_g
+#Theta_g_HV, Theta_g_CCPolSupport --> Theta_g
+#for Cov_fg: we need to first put the factor scores together and then ask for the Cov_fg
+
+Rho_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Theta_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+factorScore_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Cov_fg<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  ##first focus on Rho_g
+  Rho_g[[g]]<-lav_matrix_bdiag(Rho_HV[[g]], Rho_CCPolSupport[[g]])
+  colnames(Rho_g[[g]])<-rownames(Rho_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##then focus on Theta_g
+  Theta_g[[g]]<-lav_matrix_bdiag(Theta_g_HV[[g]], Theta_g_CCPolSupport[[g]])
+  colnames(Theta_g[[g]])<-rownames(Theta_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##lastly focus on Cov_fg
+  #first put the factor scores together:
+  factorScore_g[[g]]<-rbind(FactorScores_HV[[g]],FactorScores_CCPolSupport[[g]])
+  rownames(factorScore_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  Cov_fg[[g]]<-cov(t(factorScore_g[[g]]), use = "pairwise.complete.obs")
+}
+
+##compute the factor covariance matrix that could be used to estimate the structural model through lavaan
+Phi_BasicModel_Step2<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Phi_BasicModel_Step2[[g]]<-solve(Rho_g[[g]]) %*% (Cov_fg[[g]]-Theta_g[[g]]) %*% solve(t(Rho_g[[g]]))
+}
+
+
+###----------------------------------------------------------------------------------------------------------
+##Take out LT as the sample covariance matrix is not positive-definite
+ESS_noLT<-ESS8 %>%
+  filter(country != "LT")
+
+##Take 16th out of the Phi_BasicModel_Step2
+NEWPhi_BasicModel_Step2<-Phi_BasicModel_Step2[-16]
+
+##To extract the new nobs
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCPolicySupport=~support2+support1+support3
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS_noLT,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F) ##to extract the nobs per country
+
+
+##run the Structural model without LT
+SI_PartCCPolSupportModel_3clus<-'
+CCPolicySupport~c(a3,a3,a3,a3,a3,a1,a3,a3,a3,a3,a2,a1,a1,a1,a3,a3,a3,a1,a3,a1,a3,a1)*SelfTran+
+                c(b3,b3,b3,b3,b3,b1,b3,b3,b3,b3,b2,b1,b1,b1,b3,b3,b3,b1,b3,b1,b3,b1)*Conser+
+                c(c3,c3,c3,c3,c3,c1,c3,c3,c3,c3,c2,c1,c1,c1,c3,c3,c3,c1,c3,c1,c3,c1)*SelfEnhan
+'
+
+PartCCPolSupport.SI.3clus.fit<-cfa(model = SI_PartCCPolSupportModel_3clus,
+                               sample.cov = NEWPhi_BasicModel_Step2,
+                               sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/PartCCPolSupport_BasicModel_SingleIndicator_3clus_noLT.txt")
+summary(PartCCPolSupport.SI.3clus.fit, fit.measures=T, standardized=T)
+sink()
+
+
+#####################################################################################
+##### Single Indicator Approach for Mediation: Full Metric CCPolSupport ###########
+#####################################################################################
+
+###------------------------------------------------------------------------------------
+##Start with the Human Values model:
+#
+##Original model with cross-loadings and allow covariance between factors are as below:
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_HV<-lavInspect(NoOpen.HV.Metric.Fit2.Marker, what = "est")
+Phi_HV<-lapply(EST_HV, "[[", "psi")
+lambda_HV<-lapply(EST_HV, "[[","lambda")
+theta_HV<-lapply(EST_HV, "[[","theta")
+
+##Take only the diagonal from the Phi_HV matrix:
+Phi_HV<-lapply(Phi_HV, function(x) diag(diag(x)))
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_HV_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_HV[[g]]<-solve(solve(Phi_HV[[g]])+t(lambda_HV[[g]]) %*% solve(theta_HV[[g]]) %*% lambda_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(theta_HV[[g]])
+  
+  ##factor scores
+  y_HV_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_HV[[g]])]
+  FactorScores_HV[[g]]<-AR_Matrix_HV[[g]] %*% t(y_HV_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_HV[[g]]<-lambda_HV[[g]] %*% Phi_HV[[g]] %*% t(lambda_HV[[g]])+theta_HV[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_HV[[g]]<-Phi_HV[[g]]-t(Phi_HV[[g]]) %*% t(lambda_HV[[g]]) %*% solve(ModelImplied_Sigma_HV[[g]]) %*% lambda_HV[[g]] %*% Phi_HV[[g]]
+}
+
+##Take only the diagonal of the Posterior Varf for the next step:
+Posterior_Varf_HV<-lapply(Posterior_Varf_HV, function(x) diag(diag(x)))
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_HV[[g]]<-cov(t(FactorScores_HV[[g]]), use = "pairwise.complete.obs")
+}
+
+##Take only the diagonal of the var(f)
+Var_f_HV<-lapply(Var_f_HV, function(x) diag(diag(x)))
+
+
+##compute the true factor variance 
+TruePhi_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_HV[[g]]<-Var_f_HV[[g]]+Posterior_Varf_HV[[g]]
+}
+
+##compute the ρ:
+Rho_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_HV[[g]]<-Var_f_HV[[g]]%*% solve(TruePhi_HV[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_HV<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_HV[[g]]<-TruePhi_HV[[g]] %*% Rho_HV[[g]] %*% (diag(1, nrow = 3, ncol = 3)-Rho_HV[[g]])
+  
+}
+
+
+###------------------------------------------------------------------------------------
+##Repeat the same steps with the Climate Change Belief:
+##Original (Full) Metric Model 1: 
+##Can be used directly for the single indicator approach
+CCBelief.Metric.M1.Marker<-'
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
+                                 data = ESS8,
+                                 group = "country",
+                                 estimator="MLR",
+                                 missing="FIML",
+                                 group.equal="loadings")
+
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_CCBelief<-lavInspect(CCBelief.Metric.Fit1.Marker, what = "est")
+Phi_CCBelief<-lapply(EST_CCBelief, "[[", "psi")
+lambda_CCBelief<-lapply(EST_CCBelief, "[[","lambda")
+theta_CCBelief<-lapply(EST_CCBelief, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_CCBelief_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_CCBelief[[g]]<-solve(solve(Phi_CCBelief[[g]])+t(lambda_CCBelief[[g]]) %*% solve(theta_CCBelief[[g]]) %*% lambda_CCBelief[[g]]) %*% t(lambda_CCBelief[[g]]) %*% solve(theta_CCBelief[[g]])
+  
+  ##factor scores
+  y_CCBelief_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_CCBelief[[g]])]
+  FactorScores_CCBelief[[g]]<-AR_Matrix_CCBelief[[g]] %*% t(y_CCBelief_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_CCBelief[[g]]<-lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]] %*% t(lambda_CCBelief[[g]])+theta_CCBelief[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_CCBelief[[g]]<-Phi_CCBelief[[g]]-t(Phi_CCBelief[[g]]) %*% t(lambda_CCBelief[[g]]) %*% solve(ModelImplied_Sigma_CCBelief[[g]]) %*% lambda_CCBelief[[g]] %*% Phi_CCBelief[[g]]
+}
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_CCBelief[[g]]<-cov(t(FactorScores_CCBelief[[g]]), use = "pairwise.complete.obs")
+}
+
+
+##compute the true factor variance 
+TruePhi_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_CCBelief[[g]]<-Var_f_CCBelief[[g]]+Posterior_Varf_CCBelief[[g]]
+}
+
+##compute the ρ:
+Rho_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_CCBelief[[g]]<-Var_f_CCBelief[[g]]%*% solve(TruePhi_CCBelief[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_CCBelief<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_CCBelief[[g]]<-TruePhi_CCBelief[[g]] * Rho_CCBelief[[g]] %*% (diag(1, nrow = 1, ncol = 1)-Rho_CCBelief[[g]])
+  
+}
+
+
+
+
+###------------------------------------------------------------------------------------
+##Repeat the same steps with the full metric Climate Change Policy Support:
+CCPolSupport.Metric.M1.Marker<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.Metric.Fit1.Marker<-cfa(model = CCPolSupport.Metric.M1.Marker,
+                                     data = ESS8,
+                                     group = "country",
+                                     estimator="MLR",
+                                     missing="FIML",
+                                     group.equal="loadings")
+
+
+
+##Extract for each group:
+#the factor covariance matrix Φ 
+#the factor loadings Λ
+#the unique variance θ
+EST_CCPolSupport<-lavInspect(CCPolSupport.Metric.Fit1.Marker, what = "est")
+Phi_CCPolSupport<-lapply(EST_CCPolSupport, "[[", "psi")
+lambda_CCPolSupport<-lapply(EST_CCPolSupport, "[[","lambda")
+theta_CCPolSupport<-lapply(EST_CCPolSupport, "[[","theta")
+
+##compute the factor score matrix with regression Ar for each group:
+##compute the factor scores for each group:
+#
+AR_Matrix_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+y_CCPolSupport_items<-vector(mode = "list", length=length(unique(ESS8$country)))
+FactorScores_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  #factor score matrix
+  AR_Matrix_CCPolSupport[[g]]<-solve(solve(Phi_CCPolSupport[[g]])+t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(theta_CCPolSupport[[g]])
+  
+  ##factor scores
+  y_CCPolSupport_items[[g]]<-ESS8[ESS8$country==unique(ESS8$country)[g],colnames(AR_Matrix_CCPolSupport[[g]])]
+  FactorScores_CCPolSupport[[g]]<-AR_Matrix_CCPolSupport[[g]] %*% t(y_CCPolSupport_items[[g]])
+}
+
+##compute the posterior Varf in equation 2.3
+ModelImplied_Sigma_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+Posterior_Varf_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  ##before computing the posterior Varf, first compute the model-implied covariance matrix for each group:
+  ModelImplied_Sigma_CCPolSupport[[g]]<-lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]] %*% t(lambda_CCPolSupport[[g]])+theta_CCPolSupport[[g]]
+  
+  ##posterior Varf:
+  Posterior_Varf_CCPolSupport[[g]]<-Phi_CCPolSupport[[g]]-t(Phi_CCPolSupport[[g]]) %*% t(lambda_CCPolSupport[[g]]) %*% solve(ModelImplied_Sigma_CCPolSupport[[g]]) %*% lambda_CCPolSupport[[g]] %*% Phi_CCPolSupport[[g]]
+}
+
+##request covariance matrix from the factor scores to constrcut var(f)
+Var_f_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Var_f_CCPolSupport[[g]]<-cov(t(FactorScores_CCPolSupport[[g]]), use = "pairwise.complete.obs")
+}
+
+
+##compute the true factor variance 
+TruePhi_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  TruePhi_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]+Posterior_Varf_CCPolSupport[[g]]
+}
+
+##compute the ρ:
+Rho_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Rho_CCPolSupport[[g]]<-Var_f_CCPolSupport[[g]]%*% solve(TruePhi_CCPolSupport[[g]])
+}
+
+##Compute the residual variances for the single indicator:
+Theta_g_CCPolSupport<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))) {
+  
+  Theta_g_CCPolSupport[[g]]<-TruePhi_CCPolSupport[[g]] * Rho_CCPolSupport[[g]] %*% (diag(1, nrow = 1, ncol = 1)-Rho_CCPolSupport[[g]])
+  
+}
+
+
+
+###------------------------------------------------------------------------------------
+##At this point, we need to put each pair together in the same matrix:
+#Rho_HV, Rho_CCBelief, Rho_CCPolSupport --> Rho_g
+#Theta_g_HV, Theta_g_CCBelief, Theta_g_CCPolSupport --> Theta_g
+#for Cov_fg: we need to first put the factor scores together and then ask for the Cov_fg
+
+Rho_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Theta_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+factorScore_g<-vector(mode = "list", length=length(unique(ESS8$country)))
+Cov_fg<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  ##first focus on Rho_g
+  Rho_g[[g]]<-lav_matrix_bdiag(Rho_HV[[g]], Rho_CCBelief[[g]],Rho_CCPolSupport[[g]])
+  colnames(Rho_g[[g]])<-rownames(Rho_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCBelief[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##then focus on Theta_g
+  Theta_g[[g]]<-lav_matrix_bdiag(Theta_g_HV[[g]], Theta_g_CCBelief[[g]],Theta_g_CCPolSupport[[g]])
+  colnames(Theta_g[[g]])<-rownames(Theta_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCBelief[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  ##lastly focus on Cov_fg
+  #first put the factor scores together:
+  factorScore_g[[g]]<-rbind(FactorScores_HV[[g]],FactorScores_CCBelief[[g]],FactorScores_CCPolSupport[[g]])
+  rownames(factorScore_g[[g]])<-c(rownames(AR_Matrix_HV[[g]]), rownames(AR_Matrix_CCBelief[[g]]), rownames(AR_Matrix_CCPolSupport[[g]]))
+  
+  Cov_fg[[g]]<-cov(t(factorScore_g[[g]]), use = "pairwise.complete.obs")
+}
+
+##compute the factor covariance matrix that could be used to estimate the structural model through lavaan
+Phi_Mediation_Step2<-vector(mode = "list", length=length(unique(ESS8$country)))
+
+for(g in 1:length(unique(ESS8$country))){
+  
+  Phi_Mediation_Step2[[g]]<-solve(Rho_g[[g]]) %*% (Cov_fg[[g]]-Theta_g[[g]]) %*% solve(t(Rho_g[[g]]))
+}
+
+
+###----------------------------------------------------------------------------------------------------------
+##Take out LT as the sample covariance matrix is not positive-definite
+ESS_noLT<-ESS8 %>%
+  filter(country != "LT")
+
+##Take 16th out of the Phi_BasicModel_Step2
+NEWPhi_Mediation_Step2<-Phi_Mediation_Step2[-16]
+
+##To extract the new nobs
+fake_model<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+
+CCPolicySupport=~support2+support1+support3
+'
+
+fake<-cfa(model = fake_model,
+          data = ESS_noLT,
+          group = "country",
+          estimator="MLR",
+          missing="FIML",
+          do.fit=F) ##to extract the nobs per country
+
+
+##run the Structural model without LT
+SI_Mediation_FullMetricCPolSupport_5clus<-'
+CCBelief~c(a1,a3,a3,a1,a3,a3,a1,a3,a3,a3,a4,a4,a2,a2,a1,a3,a3,a3,a3,a4,a3,a3)*SelfTran+
+          c(b1,b3,b3,b1,b3,b3,b1,b3,b3,b3,b4,b4,b2,b2,b1,b3,b3,b3,b3,b4,b3,b3)*Conser+
+          c(c1,c3,c3,c1,c3,c3,c1,c3,c3,c3,c4,c4,c2,c2,c1,c3,c3,c3,c3,c4,c3,c3)*SelfEnhan
+
+CCPolicySupport~c(d1,d3,d3,d1,d3,d3,d1,d3,d3,d3,d4,d4,d2,d2,d1,d3,d3,d3,d3,d4,d3,d3)*CCBelief+
+                c(e1,e3,e3,e1,e3,e3,e1,e3,e3,e3,e4,e4,e2,e2,e1,e3,e3,e3,e3,e4,e3,e3)*SelfTran+
+                c(f1,f3,f3,f1,f3,f3,f1,f3,f3,f3,f4,f4,f2,f2,f1,f3,f3,f3,f3,f4,f3,f3)*Conser+
+                c(g1,g3,g3,g1,g3,g3,g1,g3,g3,g3,g4,g4,g2,g2,g1,g3,g3,g3,g3,g4,g3,g3)*SelfEnhan
+'
+
+Mediation.SI.FullMCCPolSup.5clus.fit<-cfa(model = SI_Mediation_FullMetricCPolSupport_5clus,
+                               sample.cov = NEWPhi_Mediation_Step2,
+                               sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/Mediation_FullMetricCCPolSup_SingleIndicator_5clus_noLT.txt")
+summary(Mediation.SI.FullMCCPolSup.5clus.fit, fit.measures=T, standardized=T)
 sink()
 
