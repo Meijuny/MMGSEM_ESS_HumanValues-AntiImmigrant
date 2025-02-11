@@ -5116,6 +5116,29 @@ round(Mediation.5clus.PM.MarkSup2$posteriors, digits = 10)
 ##converge
 
 
+##6 clusters:
+Mediation.6clus.PM.MarkSup2<-MMGSEM(dat=ESS8,
+                                    S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.PMetric.M1.MarkerSup2),
+                                    S2 = Str_model,
+                                    group = "country",
+                                    nclus=6,
+                                    seed = 100,
+                                    userStart = NULL,
+                                    s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.PMetric.Fit1.MarkerSup2),
+                                    max_it = 10000L,
+                                    nstarts = 150L,
+                                    printing = T,
+                                    partition = "hard",
+                                    endogenous_cov = TRUE,
+                                    endo_group_specific = TRUE,
+                                    sam_method = "local",
+                                    meanstr = FALSE,
+                                    rescaling = F,
+                                    missing="FIML")
+round(Mediation.6clus.PM.MarkSup2$posteriors, digits = 10)
+##converge
+
+
 ####----------------------------------------------------------------------------------------------------
 ##Clustering membership for the two full metric CCPolSupport options
 
@@ -5209,6 +5232,24 @@ countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
 ClusterRes.5clus<-merge(ClusterRes.5clus, countries,
+                        by.x = "group", by.y = "group")
+
+
+#
+##5-cluster solution:
+clustering.6clus<-t(apply(Mediation.6clus.PM.MarkSup2$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus[,2]<-ifelse(clustering.6clus[,2]==1,2,0)
+clustering.6clus[,3]<-ifelse(clustering.6clus[,3]==1,3,0)
+clustering.6clus[,4]<-ifelse(clustering.6clus[,4]==1,4,0)
+clustering.6clus[,5]<-ifelse(clustering.6clus[,5]==1,5,0)
+clustering.6clus[,6]<-ifelse(clustering.6clus[,6]==1,6,0)
+ClusMembership.6clus<-apply(clustering.6clus,1,function(x) sum(x))
+ClusterRes.6clus<-data.frame(group=c(1:23),
+                             ClusMembership=ClusMembership.6clus)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus<-merge(ClusterRes.6clus, countries,
                         by.x = "group", by.y = "group")
 
 
@@ -6587,8 +6628,8 @@ HVDirect.param$country <- fct_reorder(HVDirect.param$country,
                                       HVDirect.param$ClusMembership)
 
 vline_data <- data.frame(
-  Human.Values = c("Conservation","Self-Transcendence"), # Facet names
-  xintercept = c(0, 0)                             # Line positions
+  Human.Values = c("Conservation","Self-Transcendence","Self-Enhancement"), # Facet names
+  xintercept = c(0, 0, 0)                             # Line positions
 )
 
 vline_data2 <- data.frame(
@@ -6600,7 +6641,7 @@ ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
   facet_wrap(~Human.Values, scales = "free_x")+
-  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
   #geom_vline(data = vline_data2, aes(xintercept = xintercept), color="blue", linetype="dashed")+
   labs(title = "SAM with clustering results - Direct Effects of Human Values on CC Policy Support",
        color="cluster")+
@@ -6656,15 +6697,15 @@ HVIndirect.par$country <- fct_reorder(HVIndirect.par$country,
                                       HVIndirect.par$ClusMembership)
 
 vline_data <- data.frame(
-  human_values = c("Self-Enhancement"), # Facet names
-  xintercept = c(-0.070)                             # Line positions
+  human_values = c("Self-Enhancement","Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0,0,0)                             # Line positions
 )
 
 ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
   facet_wrap(~human_values, scales = "free_x")+
-  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="blue", linetype="dashed")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
   labs(title = "SAM Indirect Effects of Human Values on CC Policy Support via CCBelief",
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
@@ -6672,9 +6713,162 @@ ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
 
 
 
+####------------------------------------------------------------------------------------------
+
+##6-cluster: 
+##cluster 1: group 11
+##cluster 2: group 16
+##cluster 3: group 1,4,#7, #15
+##cluster 4: group 13
+##cluster 5: group 2,3,5,8,9,10, #14, 17,18,#20,22 
+##cluster 6: group 6,12,19,21,23
+
+
+
+##5-cluster: 
+##cluster 1: group 1,4,6,#7, 12,#15, 19,21,23
+##cluster 2: group 16, 20
+##cluster 3: group 11
+##cluster 4: group 13, 14
+##cluster 5: group 2,3,5,8,9,10,17,18,22
+
+
+
+
+sam_mediation_6clus_PM_MarkSup2<-'
+CCBelief~c(a3,a5,a5,a3,a5,a6,a3,a5,a5,a5,a1,a6,a4,a5,a3,a2,a5,a5,a6,a5,a6,a5,a6)*SelfTran+
+          c(b3,b5,b5,b3,b5,b6,b3,b5,b5,b5,b1,b6,b4,b5,b3,b2,b5,b5,b6,b5,b6,b5,b6)*Conser+
+          c(c3,c5,c5,c3,c5,c6,c3,c5,c5,c5,c1,c6,c4,c5,c3,c2,c5,c5,c6,c5,c6,c5,c6)*SelfEnhan
+
+CCPolicySupport~c(d3,d5,d5,d3,d5,d6,d3,d5,d5,d5,d1,d6,d4,d5,d3,d2,d5,d5,d6,d5,d6,d5,d6)*CCBelief+
+                c(e3,e5,e5,e3,e5,e6,e3,e5,e5,e5,e1,e6,e4,e5,e3,e2,e5,e5,e6,e5,e6,e5,e6)*SelfTran+
+                c(f3,f5,f5,f3,f5,f6,f3,f5,f5,f5,f1,f6,f4,f5,f3,f2,f5,f5,f6,f5,f6,f5,f6)*Conser+
+                c(g3,g5,g5,g3,g5,g6,g3,g5,g5,g5,g1,g6,g4,g5,g3,g2,g5,g5,g6,g5,g6,g5,g6)*SelfEnhan
+'
+
+Mediation.SAM.6clus.PM.MarkSup2<-cfa(model = sam_mediation_6clus_PM_MarkSup2,
+                                     sample.cov = Var_eta,
+                                     sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/Mediation_SAM_6clus_PM_MarkSup2.txt")
+summary(Mediation.SAM.6clus.PM.MarkSup2, fit.measures=T, standardized=T)
+sink()
+
+#
+#
+####facet plotting
+#
+##first extract all the estimate:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
+
+##Facet plot for the direct effect of the 3 human values on CCPolicySupport
+#
+#make a table with direct effect of the 3 human values on CCPolicySupport
+HVDirect.param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+HVDirect.param<-merge(HVDirect.param, ClusterRes.6clus, 
+                      by.x = "group", by.y = "group")
+
+HVDirect.param$country <- fct_reorder(HVDirect.param$country, 
+                                      HVDirect.param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Conservation","Self-Transcendence","Self-Enhancement"), # Facet names
+  xintercept = c(0, 0, 0)                             # Line positions
+)
+
+vline_data2 <- data.frame(
+  Human.Values = c("Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(-0.125,0.125)                             # Line positions
+)
+
+ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x")+
+  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  #geom_vline(data = vline_data2, aes(xintercept = xintercept), color="blue", linetype="dashed")+
+  labs(title = "SAM with clustering results - Direct Effects of Human Values on CC Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for only the effect of CCBelief on CCPolicySupport
+CCBelief_regPar<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.6clus, 
+                       by.x = "group", by.y = "group")
+
+CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
+                                       CCBelief_regPar$ClusMembership)
+
+ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  geom_vline(xintercept = c(0.20,0.465,0.86), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for the indirect effect of the 3 human values on CCPolicySupport VIA CCBelief
+HVIndirect.par<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.par$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.par$lhs))
+
+HVIndirect.par<-HVIndirect.par %>%
+  select(lhs, group, est, ci.lower, ci.upper)
+
+HVIndirect.par$human_values <- gsub("_g.*", "", HVIndirect.par$lhs)
+
+HVIndirect.par<-HVIndirect.par %>%
+  mutate(human_values=case_when(
+    human_values=="STindirect"~"Self-Transcendence",
+    human_values=="ConIndirect"~"Conservation",
+    human_values=="SEindirect"~"Self-Enhancement"
+  ))
+
+HVIndirect.par<-merge(HVIndirect.par, ClusterRes.6clus, 
+                      by.x = "group", by.y = "group")
+
+HVIndirect.par$country <- fct_reorder(HVIndirect.par$country, 
+                                      HVIndirect.par$ClusMembership)
+
+vline_data <- data.frame(
+  human_values = c("Self-Enhancement","Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0,-0.1,0.17)                             # Line positions
+)
+
+ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~human_values, scales = "free_x")+
+  geom_vline(data = vline_data, aes(xintercept = xintercept), color="violet", linetype="dashed")+
+  labs(title = "SAM Indirect Effects of Human Values on CC Policy Support via CCBelief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+
 
 ##############################################################################################################
-################ Mediation (full metri CCPolSupport): Simultaneous MGSEM estimation ##########################
+################ TO UPDATE Mediation (full metri CCPolSupport): Simultaneous MGSEM estimation ##########################
 ##############################################################################################################
 
 
@@ -6720,12 +6914,12 @@ sink()
 
 
 #####################################################################################
-############## Mediation (full metric CCPolSupport): Mapping ########################
+#################### Mediation Mapping ##############################################
 #####################################################################################
 
 
 ###----------------------------------------------------------------------------------
-##5 cluster solution:
+##6 cluster solution:
 
 ##take out the world map
 world_map<-map_data("world")
@@ -6746,7 +6940,7 @@ eu_map <- world_map %>%
   filter(region %in% eu_countries)
 
 ##add a new column called region to match the country names with the world map data country names
-ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
+ClusterRes.6clus<-ClusterRes.6clus %>%
   mutate(region=case_when(
     country == "AT" ~ "Austria",
     country == "BE" ~ "Belgium",
@@ -6775,11 +6969,11 @@ ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
   select(ClusMembership, region)
 
 ##merge the data:
-map_with_5clusters.150s <- eu_map %>%
-  left_join(ClusterRes.5clus.150s, by = "region")
+map_with_6clusters <- eu_map %>%
+  left_join(ClusterRes.6clus, by = "region")
 
 ##lay out on the map:
-ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(ClusMembership))) +
+ggplot(map_with_6clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
   geom_polygon(color = "white") +
   labs(
     title = "Clustering Results on the Map",
@@ -6787,6 +6981,50 @@ ggplot(map_with_5clusters.150s, aes(long, lat, group = group, fill = factor(Clus
   ) +
   theme_minimal()
 
+##mapping with translation of CCBelief into CCPolSupport:
+map_with_6clusters <- map_with_6clusters %>%
+  mutate(CCBelief_Into_CCPolSupport=case_when(
+    ClusMembership == 1 ~ "weakest",
+    ClusMembership == 2 ~ "medium-weak",
+    ClusMembership == 3 ~ "medium-weak",
+    ClusMembership == 4 ~ "strongest",
+    ClusMembership == 5 ~ "medium-strong",
+    ClusMembership == 6 ~ "medium-weak"
+  ))
+
+map_with_6clusters$CCBelief_Into_CCPolSupport<-factor(map_with_6clusters$CCBelief_Into_CCPolSupport,
+                                                      levels = c("weakest","medium-weak","medium-strong","strongest"))
+
+
+ggplot(map_with_6clusters, aes(long, lat, group = group, fill = CCBelief_Into_CCPolSupport)) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "CCBelief into CCPolSupport"
+  ) +
+  theme_minimal()
+
+
+
+##mapping within the medium-weak group:
+map_with_6clusters <- map_with_6clusters %>%
+  mutate(Characteristics=case_when(
+    ClusMembership == 1 ~ NA,
+    ClusMembership == 2 ~ "strong neg. ind. SE",
+    ClusMembership == 3 ~ "no other char.",
+    ClusMembership == 4 ~ NA,
+    ClusMembership == 5 ~ NA,
+    ClusMembership == 6 ~ "weak ind. Con_ST"
+  ))
+
+
+ggplot(map_with_6clusters, aes(long, lat, group = group, fill = factor(Characteristics))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "characteristics"
+  ) +
+  theme_minimal()
 
 
 #####################################################################################
