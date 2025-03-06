@@ -13,7 +13,8 @@ library(mmgsem)
 #library(usethis)
 #library(gitcreds)
 #gitcreds_set()
-#devtools::install_github("AndresFPA/mmgsem")
+Sys.setenv(GITHUB_PAT = "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")
+devtools::install_github("AndresFPA/mmgsem")
 
 ###################################################################################
 ####################### Data Management ###########################################
@@ -198,6 +199,10 @@ HV.Config.Fit1<-cfa(model = HV.Config.M1,
                     missing="FIML",
                     std.lv=T)
 
+sink("./Sink Output/report1/OpennessInclu_HV_Config_fit1.txt")
+summary(HV.Config.Fit1, fit.measures=T, standardized=T)
+sink()
+
 MI.Config.M1<-modindices(HV.Config.Fit1, minimum.value = 10, sort. = T)
 MI.Config.M1<-MI.Config.M1 %>%
   mutate(parameter=paste(lhs, op, rhs, sep = ""))
@@ -207,9 +212,7 @@ ParameterCount<-MI.Config.M1 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-sink("./Sink Output/ESS8/HV_Config_fit1.txt")
-summary(HV.Config.Fit1, fit.measures=T, standardized=T)
-sink()
+
 
 ##Configural Model 2: Add cross loading Conser=~O4
 HV.Config.M2<-'
@@ -226,6 +229,10 @@ HV.Config.Fit2<-cfa(model = HV.Config.M2,
                     missing="FIML",
                     std.lv=T)
 
+sink("./Sink Output/ESS8/HV_Config_fit2.txt")
+summary(HV.Config.Fit2, fit.measures=T, standardized=T)
+sink()
+
 MI.Config.M2<-modindices(HV.Config.Fit2, minimum.value = 10, sort. = T)
 MI.Config.M2<-MI.Config.M2 %>%
   mutate(parameter=paste(lhs, op, rhs, sep = ""))
@@ -234,9 +241,7 @@ ParameterCount<-MI.Config.M2 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-sink("./Sink Output/ESS8/HV_Config_fit2.txt")
-summary(HV.Config.Fit2, fit.measures=T, standardized=T)
-sink()
+
 
 
 ##Configural Model 3: Add cross loading SelfTran=~SE3
@@ -314,6 +319,10 @@ HV.Config.Fit5<-cfa(model = HV.Config.M5,
                     missing="FIML",
                     std.lv=T)
 
+sink("./Sink Output/ESS8/HV_Config_fit5.txt")
+summary(HV.Config.Fit5, fit.measures=T, standardized=T)
+sink()
+
 MI.Config.M5<-modindices(HV.Config.Fit5, minimum.value = 10, sort. = T)
 MI.Config.M5<-MI.Config.M5 %>%
   mutate(parameter=paste(lhs, op, rhs, sep = ""))
@@ -322,9 +331,7 @@ ParameterCount<-MI.Config.M5 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
-sink("./Sink Output/ESS8/HV_Config_fit5.txt")
-summary(HV.Config.Fit5, fit.measures=T, standardized=T)
-sink()
+
 
 ##Configural Model 6: Add cross-loading: Conser=~SE4
 HV.Config.M6<-'
@@ -451,6 +458,39 @@ sink()
 ##first attempt: add error term correlation C5~~C6 
 ##--> leads to correlation between SelfTran and Conser larger than 1 in group 16
 ##second attempt: add cross-loading SelfTran=~O1
+HV.Config.M10.C5C6<-'
+SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+O2+C1
+Conser=~C1+C2+C3+C4+C5+C6+O4+SE4
+OpenChange=~O1+O2+O3+O4+O5+O6
+SelfEnhan=~SE1+SE2+SE3+SE4+C1
+
+##error term correlation
+O5~~O6
+C3~~C4
+C5~~C6
+'
+
+HV.Config.Fit10.C5C6<-cfa(model = HV.Config.M10.C5C6,
+                     data = ESS8,
+                     group = "country",
+                     estimator="MLR",
+                     missing="FIML",
+                     std.lv=T)
+
+
+sink("./Sink Output/ESS8/HV_Config_fit10_C5C6.txt")
+summary(HV.Config.Fit10.C5C6, fit.measures=T, standardized=T)
+sink()
+
+MI.Config.M10.C5C6<-modindices(HV.Config.Fit10.C5C6, minimum.value = 10, sort. = T)
+MI.Config.M10.C5C6<-MI.Config.M10.C5C6 %>%
+  mutate(parameter=paste(lhs, op, rhs, sep = ""))
+ParameterCount<-MI.Config.M10.C5C6 %>%
+  group_by(parameter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+
 HV.Config.M10<-'
 SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+O2+C1+O1
 Conser=~C1+C2+C3+C4+C5+C6+O4+SE4
@@ -499,7 +539,7 @@ NoOpen.HV.Config.Fit1<-cfa(model = NoOpen.HV.Config.M1,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit1.txt")
+sink("./Sink Output/report1/HV_Config_fit1.txt")
 summary(NoOpen.HV.Config.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -510,6 +550,10 @@ ParameterCount<-NoOpen.MI.Config.M1 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M1_mi_count.RData")
+save(NoOpen.MI.Config.M1, file="./Sink Output/report1/M1_mi.RData")
+
 
 ##Configural Model 2: add cross-loading: Conser=~SE4
 NoOpen.HV.Config.M2<-'
@@ -525,7 +569,7 @@ NoOpen.HV.Config.Fit2<-cfa(model = NoOpen.HV.Config.M2,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit2.txt")
+sink("./Sink Output/report1/HV_Config_fit2.txt")
 summary(NoOpen.HV.Config.Fit2, fit.measures=T, standardized=T)
 sink()
 
@@ -536,6 +580,9 @@ ParameterCount<-NoOpen.MI.Config.M2 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M2_mi_count.RData")
+save(NoOpen.MI.Config.M2, file="./Sink Output/report1/M2_mi.RData")
 
 
 ##Configural Model 3: add cross-loading: SelfTran=~SE3
@@ -552,7 +599,7 @@ NoOpen.HV.Config.Fit3<-cfa(model = NoOpen.HV.Config.M3,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit3.txt")
+sink("./Sink Output/report1/HV_Config_fit3.txt")
 summary(NoOpen.HV.Config.Fit3, fit.measures=T, standardized=T)
 sink()
 
@@ -563,6 +610,9 @@ ParameterCount<-NoOpen.MI.Config.M3 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M3_mi_count.RData")
+save(NoOpen.MI.Config.M3, file="./Sink Output/report1/M3_mi.RData")
 
 ##Configural Model 4: add cross-loading: SelfEnhan=~C1
 NoOpen.HV.Config.M4<-'
@@ -578,7 +628,7 @@ NoOpen.HV.Config.Fit4<-cfa(model = NoOpen.HV.Config.M4,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit4.txt")
+sink("./Sink Output/report1/HV_Config_fit4.txt")
 summary(NoOpen.HV.Config.Fit4, fit.measures=T, standardized=T)
 sink()
 
@@ -589,6 +639,9 @@ ParameterCount<-NoOpen.MI.Config.M4 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M4_mi_count.RData")
+save(NoOpen.MI.Config.M4, file="./Sink Output/report1/M4_mi.RData")
 
 
 ##Configural Model 5: add error term correlation: C5~~C6
@@ -608,7 +661,7 @@ NoOpen.HV.Config.Fit5<-cfa(model = NoOpen.HV.Config.M5,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit5.txt")
+sink("./Sink Output/report1/HV_Config_fit5.txt")
 summary(NoOpen.HV.Config.Fit5, fit.measures=T, standardized=T)
 sink()
 
@@ -619,6 +672,9 @@ ParameterCount<-NoOpen.MI.Config.M5 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M5_mi_count.RData")
+save(NoOpen.MI.Config.M5, file="./Sink Output/report1/M5_mi.RData")
 
 ##Configural Model 6: Allow cross-loading SelfTran=~C3
 NoOpen.HV.Config.M6<-'
@@ -637,7 +693,7 @@ NoOpen.HV.Config.Fit6<-cfa(model = NoOpen.HV.Config.M6,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit6.txt")
+sink("./Sink Output/report1/HV_Config_fit6.txt")
 summary(NoOpen.HV.Config.Fit6, fit.measures=T, standardized=T)
 sink()
 
@@ -648,6 +704,9 @@ ParameterCount<-NoOpen.MI.Config.M6 %>%
   group_by(parameter) %>%
   summarise(count=n()) %>%
   arrange(desc(count))
+
+save(ParameterCount, file="./Sink Output/report1/M6_mi_count.RData")
+save(NoOpen.MI.Config.M6, file="./Sink Output/report1/M6_mi.RData")
 
 ##Configural Model 7: Allow cross-loading SelfTran=~C4
 NoOpen.HV.Config.M7<-'
@@ -666,17 +725,10 @@ NoOpen.HV.Config.Fit7<-cfa(model = NoOpen.HV.Config.M7,
                            missing="FIML",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Config_fit7.txt")
+sink("./Sink Output/report1/HV_Config_fit7.txt")
 summary(NoOpen.HV.Config.Fit7, fit.measures=T, standardized=T)
 sink()
 
-NoOpen.MI.Config.M7<-modindices(NoOpen.HV.Config.Fit7, minimum.value = 10, sort. = T)
-NoOpen.MI.Config.M7<-NoOpen.MI.Config.M7 %>%
-  mutate(parameter=paste(lhs, op, rhs, sep = ""))
-ParameterCount<-NoOpen.MI.Config.M7 %>%
-  group_by(parameter) %>%
-  summarise(count=n()) %>%
-  arrange(desc(count))
 
 ##(full) Metric Model 1
 NoOpen.HV.Metric.M1<-'
@@ -696,7 +748,7 @@ NoOpen.HV.Metric.Fit1<-cfa(model = NoOpen.HV.Metric.M1,
                            group.equal="loadings",
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit1.txt")
+sink("./Sink Output/report1/HV_Metric_fit1.txt")
 summary(NoOpen.HV.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -724,6 +776,12 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
   summarise(count=n()) %>%
   arrange(desc(count))
 
+
+save(EPC.Chi2Diff.Summary, file="./Sink Output/report1/M8_mi_count.RData")
+save(EPC.Chi2Diff.M1, file="./Sink Output/report1/M8_mi.RData")
+
+
+
 ##(Partial) Metric Model 2: let SelfEnhan=~SE3 to be freely estimated
 NoOpen.HV.Metric.M2<-'
 SelfTran=~ST1+ST2+ST3+ST4+ST5+SE3+C3+C4
@@ -743,9 +801,36 @@ NoOpen.HV.Metric.Fit2<-cfa(model = NoOpen.HV.Metric.M2,
                            group.partial=c("SelfEnhan=~SE3"),
                            std.lv=T)
 
-sink("./Sink Output/ESS8/NoOpen_HV_Metric_fit2.txt")
+sink("./Sink Output/report1/HV_Metric_fit2.txt")
 summary(NoOpen.HV.Metric.Fit2, fit.measures=T, standardized=T)
 sink()
+
+
+##Marker variable approach
+##(Partial) Metric Model 2: let SelfEnhan=~SE3 to be freely estimated
+#
+NoOpen.HV.Metric.M2.Marker<-'
+SelfTran=~ST4+ST1+ST2+ST3+ST5+SE3+C3+C4
+Conser=~C2+C1+C3+C4+C5+C6+SE4
+SelfEnhan=~SE2+SE1+SE3+SE4+C1
+
+##Add Error Term Correlation
+C5~~C6
+'
+
+NoOpen.HV.Metric.Fit2.Marker<-cfa(model = NoOpen.HV.Metric.M2.Marker,
+                                  data = ESS8,
+                                  group = "country",
+                                  estimator="MLR",
+                                  missing="FIML",
+                                  group.equal="loadings",
+                                  group.partial=c("SelfEnhan=~SE3"))
+
+
+sink("./Sink Output/report1/Marker_HV_Metric_fit2.txt")
+summary(NoOpen.HV.Metric.Fit2.Marker, fit.measures=T, standardized=T)
+sink()
+
 
 #####################################################################################
 ############### Climate Change Belief - Measurement Model ###########################
@@ -763,7 +848,7 @@ CCBelief.Config.Fit1<-cfa(model = CCBelief.Config.M1,
                           missing="FIML",
                           std.lv=T)
 
-sink("./Sink Output/ESS8/CCBelief_Config_fit1.txt")
+sink("./Sink Output/report1/CCBelief_Config_fit1.txt")
 summary(CCBelief.Config.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -780,8 +865,27 @@ CCBelief.Metric.Fit1<-cfa(model = CCBelief.Metric.M1,
                           group.equal="loadings",
                           std.lv=T)
 
-sink("./Sink Output/ESS8/CCBelief_Metric_fit1.txt")
+sink("./Sink Output/report1/CCBelief_Metric_fit1.txt")
 summary(CCBelief.Metric.Fit1, fit.measures=T, standardized=T)
+sink()
+
+
+##marker variable
+##(Full) Metric Model 1: 
+CCBelief.Metric.M1.Marker<-'
+CCBelief=~ImpactBelief+TrendBelief+AttriBelief
+'
+
+CCBelief.Metric.Fit1.Marker<-cfa(model = CCBelief.Metric.M1.Marker,
+                                 data = ESS8,
+                                 group = "country",
+                                 estimator="MLR",
+                                 missing="FIML",
+                                 group.equal="loadings")
+
+
+sink("./Sink Output/report1/Marker_CCBelief_Metric_fit1.txt")
+summary(CCBelief.Metric.Fit1.Marker, fit.measures=T, standardized=T)
 sink()
 
 #####################################################################################
@@ -822,7 +926,7 @@ CCPolSupport.Config.Fit1.WideBound<-cfa(model = CCPolSupport.Config.M1,
                               std.lv=T,
                               bounds="wide")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Config_fit1_WideBound.txt")
+sink("./Sink Output/report1/CCPolicySupport_Config_fit1_WideBound.txt")
 summary(CCPolSupport.Config.Fit1.WideBound, fit.measures=T, standardized=T)
 sink()
 
@@ -859,7 +963,7 @@ CCPolSupport.Metric.Fit1<-cfa(model = CCPolSupport.Metric.M1,
                               group.equal="loadings",
                               std.lv=T)
 
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1.txt")
+sink("./Sink Output/report1/CCPolicySupport_Metric_fit1.txt")
 summary(CCPolSupport.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -913,7 +1017,7 @@ CCPolSupport.Metric.Fit1.WideBound<-cfa(model = CCPolSupport.Metric.M1.wide,
                                         group.equal="loadings",
                                         bounds="wide")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit1_WideBound.txt")
+sink("./Sink Output/report1/CCPolicySupport_Metric_fit1_WideBound.txt")
 summary(CCPolSupport.Metric.Fit1.WideBound, fit.measures=T, standardized=T)
 sink()
 
@@ -1164,7 +1268,7 @@ CCPolSupport.Metric.Fit2.WideBound<-cfa(model = CCPolSupport.Metric.M2.wide,
                                         missing="FIML",
                                         bounds="wide")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_WideBound.txt")
+sink("./Sink Output/report1/CCPolicySupport_Metric_fit2_WideBound.txt")
 summary(CCPolSupport.Metric.Fit2.WideBound, fit.measures=T, standardized=T)
 sink()
 
@@ -1231,7 +1335,7 @@ CCPolSupport.Metric.Fit2.Marker.WideBound<-cfa(model = CCPolSupport.Metric.M2.Ma
                                      missing="FIML",
                                      bounds="wide")
 
-sink("./Sink Output/ESS8/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
+sink("./Sink Output/report1/CCPolicySupport_Metric_fit2_marker_wideBound.txt")
 summary(CCPolSupport.Metric.Fit2.Marker.WideBound, fit.measures=T, standardized=T)
 sink()
 
@@ -1278,7 +1382,7 @@ CCPolSupport.Config.Fit1<-cfa(model = CCPolSupport.Config.M1,
                               missing="FIML",
                               std.lv=T)
 
-sink("./Sink Output/ESS8/NoHU_CCPolSup_Config_fit1.txt")
+sink("./Sink Output/report1/NoHU_CCPolSup_Config_fit1.txt")
 summary(CCPolSupport.Config.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -1296,7 +1400,7 @@ CCPolSupport.Metric.Fit1<-cfa(model = CCPolSupport.Metric.M1,
                               group.equal="loadings",
                               std.lv=T)
 
-sink("./Sink Output/ESS8/NoHU_CCPolSup_Metric_fit1.txt")
+sink("./Sink Output/report1/NoHU_CCPolSup_Metric_fit1.txt")
 summary(CCPolSupport.Metric.Fit1, fit.measures=T, standardized=T)
 sink()
 
@@ -1328,7 +1432,7 @@ EPC.Chi2Diff.Summary<-EPC.Chi2Diff.M1 %>%
 
 ##(partial) metric Invariance Model 1:
 ##test to free support3:
-##(full) metric Invariance Model 1:
+##(partial) metric Invariance Model 1:
 CCPolSupport.Metric.M2<-'
 CCPolicySupport=~support1+support2+support3
 '
@@ -1342,7 +1446,7 @@ CCPolSupport.Metric.Fit2.FreeSup3<-cfa(model = CCPolSupport.Metric.M2,
                               group.partial=c("CCPolicySupport=~support3"),
                               std.lv=T)
 
-sink("./Sink Output/ESS8/NoHU_CCPolSup_Metric_fit2_freeSup3.txt")
+sink("./Sink Output/report1/NoHU_CCPolSup_Metric_fit2_freeSup3.txt")
 summary(CCPolSupport.Metric.Fit2.FreeSup3, fit.measures=T, standardized=T)
 sink()
 
@@ -1388,6 +1492,22 @@ summary(CCPolSupport.Metric.Fit2.FreeSup1, fit.measures=T, standardized=T)
 sink()
 ##does not improve the fit so well as freeing support3
 
+##partial metric - marker variable
+CCPolSupport.PMetric.M1.MarkerSup2<-'
+CCPolicySupport=~support2+support1+support3
+'
+
+CCPolSupport.PMetric.Fit1.MarkerSup2<-cfa(model = CCPolSupport.PMetric.M1.MarkerSup2,
+                                          data = ESS8_noHU,
+                                          group = "country",
+                                          estimator="MLR",
+                                          missing="FIML",
+                                          group.equal="loadings",
+                                          group.partial=c("CCPolicySupport=~support3"))
+
+sink("./Sink Output/report1/Marker_NoHU_CCPolSup_Metric_fit2_freeSup3.txt")
+summary(CCPolSupport.PMetric.Fit1.MarkerSup2, fit.measures=T, standardized=T)
+sink()
 
 #####################################################################################
 ################### Personal Efficacy - Measurement Model ###########################
@@ -1729,7 +1849,7 @@ BasicModel.Selection<-ModelSelection(dat=ESS8,
                                      userStart = NULL,
                                      s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                                      max_it = 10000L,
-                                     nstarts = 100L,
+                                     nstarts = 50L,
                                      printing = FALSE,
                                      partition = "hard",
                                      endogenous_cov = TRUE,
@@ -1740,6 +1860,15 @@ BasicModel.Selection<-ModelSelection(dat=ESS8,
                                      missing="FIML")
 #
 View(BasicModel.Selection$Overview)
+
+hull_indices <- chull(BasicModel.Selection$Overview$nrpar, BasicModel.Selection$Overview$LL)
+
+plot(BasicModel.Selection$Overview$nrpar, BasicModel.Selection$Overview$LL, 
+     pch=4, col="black", main="CHull plot",xlab="Number of free parameters", ylab="Loglikelihood")
+lines(BasicModel.Selection$Overview$nrpar[hull_indices], 
+      BasicModel.Selection$Overview$LL[hull_indices], col="black", lwd=1)
+points(BasicModel.Selection$Overview$nrpar[hull_indices], BasicModel.Selection$Overview$LL[hull_indices], pch=16, col="red")
+
 
 ##plot for CHull observed
 ggplot(BasicModel.Selection$Overview, aes(x=nrpar, y=LL)) +
@@ -1760,6 +1889,12 @@ ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G))+
   geom_point()+geom_line()+
   labs(title = "BIC_G Observed")+xlab("Number of Clusters")+ylab("BIC_G")+
   theme_minimal()
+
+plot(BasicModel.Selection$Overview$Clusters, BasicModel.Selection$Overview$BIC_G, 
+     pch=4, col="black", main="BIC_G plot",xlab="Number of clusters", ylab="BIC_G")
+lines(BasicModel.Selection$Overview$Clusters, 
+      BasicModel.Selection$Overview$BIC_G, col="black", lwd=1)
+
 #
 ##plot for BIC_G factor
 ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
@@ -1927,8 +2062,8 @@ BasicModel.5clus.150S<-MMGSEM(dat=ESS8_lw,
 
 #
 ##Based on the new model selection with FIML, we go with 5 clusters
-##150 starts - FIML
-BasicModel.5clus.150S.FIML<-MMGSEM(dat=ESS8,
+##50 starts - FIML
+BasicModel.5clus.50S.FIML<-MMGSEM(dat=ESS8,
                              S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
                              S2 = Str_model,
                              group = "country",
@@ -1937,7 +2072,7 @@ BasicModel.5clus.150S.FIML<-MMGSEM(dat=ESS8,
                              userStart = NULL,
                              s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                              max_it = 10000L,
-                             nstarts = 150L,
+                             nstarts = 50L,
                              printing = FALSE,
                              partition = "hard",
                              endogenous_cov = TRUE,
@@ -1946,6 +2081,52 @@ BasicModel.5clus.150S.FIML<-MMGSEM(dat=ESS8,
                              meanstr = FALSE,
                              rescaling = F,
                              missing="FIML")
+
+save(BasicModel.5clus.50S.FIML, file="./Sink Output/ESS8/AndresObject2.RData")
+
+SE.BasicModel.5clus<-se(BasicModel.5clus.150S.FIML)
+
+##50 starts - FIML
+BasicModel.6clus.50S.FIML<-MMGSEM(dat=ESS8,
+                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                                  S2 = Str_model,
+                                  group = "country",
+                                  nclus=6,
+                                  seed = 100,
+                                  userStart = NULL,
+                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                                  max_it = 10000L,
+                                  nstarts = 50L,
+                                  printing = FALSE,
+                                  partition = "hard",
+                                  endogenous_cov = TRUE,
+                                  endo_group_specific = TRUE,
+                                  sam_method = "local",
+                                  meanstr = FALSE,
+                                  rescaling = F,
+                                  missing="FIML")
+
+
+##7-clusters
+##50 starts - FIML
+BasicModel.7clus.50S.FIML<-MMGSEM(dat=ESS8,
+                                  S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
+                                  S2 = Str_model,
+                                  group = "country",
+                                  nclus=7,
+                                  seed = 100,
+                                  userStart = NULL,
+                                  s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
+                                  max_it = 10000L,
+                                  nstarts = 50L,
+                                  printing = FALSE,
+                                  partition = "hard",
+                                  endogenous_cov = TRUE,
+                                  endo_group_specific = TRUE,
+                                  sam_method = "local",
+                                  meanstr = FALSE,
+                                  rescaling = F,
+                                  missing="FIML")
 
 
 
@@ -2062,22 +2243,60 @@ ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
 
 
 ##Based on the new model selection with FIML, we go with 5 clusters
-##150 starts - FIML
-#5-cluster solution - 150 random starts - FIML
-clustering.5clus.150s.FIML<-t(apply(BasicModel.5clus.150S.FIML$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.5clus.150s.FIML[,2]<-ifelse(clustering.5clus.150s.FIML[,2]==1,2,0)
-clustering.5clus.150s.FIML[,3]<-ifelse(clustering.5clus.150s.FIML[,3]==1,3,0)
-clustering.5clus.150s.FIML[,4]<-ifelse(clustering.5clus.150s.FIML[,4]==1,4,0)
-clustering.5clus.150s.FIML[,5]<-ifelse(clustering.5clus.150s.FIML[,5]==1,5,0)
+##50 starts - FIML
+#5-cluster solution - 50 random starts - FIML
+clustering.5clus.50s.FIML<-t(apply(BasicModel.5clus.50S.FIML$posteriors[,1:5],1,function(x) as.numeric(x==max(x))))
+clustering.5clus.50s.FIML[,2]<-ifelse(clustering.5clus.50s.FIML[,2]==1,2,0)
+clustering.5clus.50s.FIML[,3]<-ifelse(clustering.5clus.50s.FIML[,3]==1,3,0)
+clustering.5clus.50s.FIML[,4]<-ifelse(clustering.5clus.50s.FIML[,4]==1,4,0)
+clustering.5clus.50s.FIML[,5]<-ifelse(clustering.5clus.50s.FIML[,5]==1,5,0)
 
-ClusMembership.5clus.150s<-apply(clustering.5clus.150s.FIML,1,function(x) sum(x))
-ClusterRes.5clus.150s<-data.frame(group=c(1:23),
-                                  ClusMembership=ClusMembership.5clus.150s)
+ClusMembership.5clus.50s<-apply(clustering.5clus.50s.FIML,1,function(x) sum(x))
+ClusterRes.5clus.50s<-data.frame(group=c(1:23),
+                                  ClusMembership=ClusMembership.5clus.50s)
 countries<-data.frame(group=c(1:23),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
-ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
+ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
                              by.x = "group", by.y = "group")
+
+##50 starts - FIML
+#6-cluster solution - 50 random starts - FIML
+clustering.6clus.50s.FIML<-t(apply(BasicModel.6clus.50S.FIML$posteriors[,1:6],1,function(x) as.numeric(x==max(x))))
+clustering.6clus.50s.FIML[,2]<-ifelse(clustering.6clus.50s.FIML[,2]==1,2,0)
+clustering.6clus.50s.FIML[,3]<-ifelse(clustering.6clus.50s.FIML[,3]==1,3,0)
+clustering.6clus.50s.FIML[,4]<-ifelse(clustering.6clus.50s.FIML[,4]==1,4,0)
+clustering.6clus.50s.FIML[,5]<-ifelse(clustering.6clus.50s.FIML[,5]==1,5,0)
+clustering.6clus.50s.FIML[,6]<-ifelse(clustering.6clus.50s.FIML[,6]==1,6,0)
+
+ClusMembership.6clus.50s<-apply(clustering.6clus.50s.FIML,1,function(x) sum(x))
+ClusterRes.6clus.50s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.6clus.50s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.6clus.50s<-merge(ClusterRes.6clus.50s, countries,
+                            by.x = "group", by.y = "group")
+
+
+##50 starts - FIML
+#7-cluster solution - 50 random starts - FIML
+clustering.7clus.50s.FIML<-t(apply(BasicModel.7clus.50S.FIML$posteriors[,1:7],1,function(x) as.numeric(x==max(x))))
+clustering.7clus.50s.FIML[,2]<-ifelse(clustering.7clus.50s.FIML[,2]==1,2,0)
+clustering.7clus.50s.FIML[,3]<-ifelse(clustering.7clus.50s.FIML[,3]==1,3,0)
+clustering.7clus.50s.FIML[,4]<-ifelse(clustering.7clus.50s.FIML[,4]==1,4,0)
+clustering.7clus.50s.FIML[,5]<-ifelse(clustering.7clus.50s.FIML[,5]==1,5,0)
+clustering.7clus.50s.FIML[,6]<-ifelse(clustering.7clus.50s.FIML[,6]==1,6,0)
+clustering.7clus.50s.FIML[,7]<-ifelse(clustering.7clus.50s.FIML[,7]==1,7,0)
+
+ClusMembership.7clus.50s<-apply(clustering.7clus.50s.FIML,1,function(x) sum(x))
+ClusterRes.7clus.50s<-data.frame(group=c(1:23),
+                                 ClusMembership=ClusMembership.7clus.50s)
+countries<-data.frame(group=c(1:23),
+                      country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
+
+ClusterRes.7clus.50s<-merge(ClusterRes.7clus.50s, countries,
+                            by.x = "group", by.y = "group")
 
 #####################################################################################
 ################### Basic Model: SAM estimation and comparison ######################
@@ -2618,18 +2837,18 @@ htmlwidgets::saveWidget(as_widget(SAM_5clus_150S_3D), "SAM_5clus_150S_3D.html")
 ##cluster 4: group 2,6,12,21,23
 ##cluster 5: group 4,13,15
 
-sam_str_model_5clus.150s.FIML<-'
+sam_str_model_5clus.50s.FIML<-'
 CCBelief~c(a1,a4,a1,a5,a1,a4,a2,a2,a2,a2,a1,a4,a5,a2,a5,a3,a2,a2,a1,a1,a4,a2,a4)*SelfTran+
           c(b1,b4,b1,b5,b1,b4,b2,b2,b2,b2,b1,b4,b5,b2,b5,b3,b2,b2,b1,b1,b4,b2,b4)*Conser+
           c(c1,c4,c1,c5,c1,c4,c2,c2,c2,c2,c1,c4,c5,c2,c5,c3,c2,c2,c1,c1,c4,c2,c4)*SelfEnhan
 '
 
-BasicModel.SAM.5clus.150s.FIML<-cfa(model = sam_str_model_5clus.150s.FIML,
+BasicModel.SAM.5clus.50s.FIML<-cfa(model = sam_str_model_5clus.50s.FIML,
                               sample.cov = Var_eta,
                               sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/BasicModel_SAM_5clus_150s_FIML.txt")
-summary(BasicModel.SAM.5clus.150s.FIML, fit.measures=T, standardized=T)
+sink("./Sink Output/ESS8/BasicModel_SAM_5clus_50s_FIML.txt")
+summary(BasicModel.SAM.5clus.50s.FIML, fit.measures=T, standardized=T)
 sink()
 
 
@@ -2645,7 +2864,7 @@ FreeSAM_reg_param<-FreeSAMparam %>%
   ))
 
 
-FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.150s, 
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.50s, 
                          by.x = "group", by.y = "group")
 
 FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
@@ -2673,18 +2892,213 @@ FreeSAM_reg_param<-FreeSAMparam %>%
   select(lhs, rhs, group, est) %>%
   pivot_wider(names_from = rhs, values_from = est)
 
-FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.150s, 
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.5clus.50s, 
                          by.x = "group", by.y = "group")
 
-SAM_5clus_150s_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854")
+
+SAM_5clus_50s_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, 
+                               color = ~factor(ClusMembership),
+                               colors = cluster_colors,
                                type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM 5 clusters 150S FIML with clustering results - Human Values on Climate Change Belief",
+  layout(title="SAM 5 clusters 50S FIML with clustering results - Human Values on Climate Change Belief",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-htmlwidgets::saveWidget(as_widget(SAM_5clus_150s_3D_FIML), "FINAL_SAM_5clus_150s_3D_FIML.html")
+htmlwidgets::saveWidget(as_widget(SAM_5clus_50s_3D_FIML), "BasicModel1_5clus_3D.html")
 
+##3-D for only cluster 1, 3, 5
+FreeSAM_reg_param_135<-FreeSAM_reg_param %>%
+  filter(ClusMembership %in% c(1,3,5))
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "3" = "#8DA0CB",  # Mint Green
+                    "5" = "#A6D854")
+
+SAM_cluster135_3D<-plot_ly(FreeSAM_reg_param_135, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, 
+                           color = ~factor(ClusMembership),
+                           colors = cluster_colors,
+                           type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 5 clusters 50S FIML with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+##3-D for only cluster 1, 3, 5
+FreeSAM_reg_param_234<-FreeSAM_reg_param %>%
+  filter(ClusMembership %in% c(2,3,4))
+
+cluster_colors <- c("2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3")
+
+SAM_cluster234_3D<-plot_ly(FreeSAM_reg_param_234, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, 
+                           color = ~factor(ClusMembership),
+                           colors = cluster_colors,
+                           type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 5 clusters 50S FIML with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+
+
+##
+##-------------------------------------------------------------------------------------------------------
+##6-cluster with 50 random starts - FIML: 
+
+#sam_str_model_7clus.50s.FIML<-'
+#CCBelief~c(a2,a5,a2,a6,a2,a5,a1,a4,a4,a1,a2,a5,a6,a4,a6,a3,a1,a4,a2,a2,a7,a4,a1)*SelfTran+
+#          c(b2,b5,b2,b6,b2,b5,b1,b4,b4,b1,b2,b5,b6,b4,b6,b3,b1,b4,b2,b2,b7,b4,b1)*Conser+
+#          c(c2,c5,c2,c6,c2,c5,c1,c4,c4,c1,c2,c5,c6,c4,c6,c3,c1,c4,c2,c2,c7,c4,c1)*SelfEnhan
+#'
+
+#BasicModel.SAM.7clus.50s.FIML<-cfa(model = sam_str_model_7clus.50s.FIML,
+#                                   sample.cov = Var_eta,
+#                                   sample.nobs = lavInspect(fake, "nobs"))
+
+#sink("./Sink Output/ESS8/BasicModel_SAM_7clus_50s_FIML.txt")
+#summary(BasicModel.SAM.7clus.50s.FIML, fit.measures=T, standardized=T)
+#sink()
+
+
+##faceted dot plot
+#FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+#FreeSAM_reg_param<-FreeSAMparam %>%
+#  filter(op=="~") %>%
+#  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+#  mutate(Human.Values=case_when(
+#    rhs=="SelfTran" ~ "Self-Transcendence",
+#    rhs=="Conser" ~ "Conservation",
+#    rhs=="SelfEnhan" ~ "Self-Enhancement"
+#  ))
+
+
+#FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.7clus.50s, 
+#                         by.x = "group", by.y = "group")
+
+#FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+#                                         FreeSAM_reg_param$ClusMembership)
+
+#vline_data <- data.frame(
+#  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+#  xintercept = c(0, -0.3, 0.55)                             # Line positions
+#)
+
+#ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+#  geom_point(size=3) +
+#  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+#  facet_wrap(~Human.Values, scales = "free_x") +
+#  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+#  labs(title = "SAM with clustering results - Human Values on Climate Change Belief",
+#       color="cluster")+
+#  xlab("regression coefficients")+ylab("country")+
+#  theme_bw()
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.6clus.50s, 
+                         by.x = "group", by.y = "group")
+
+SAM_6clus_50s_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                               type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 6 clusters 50S FIML with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(SAM_7clus_50s_3D_FIML), "BasicModel1_7clus_3D.html")
+
+
+
+
+##
+##-------------------------------------------------------------------------------------------------------
+##7-cluster with 50 random starts - FIML: 
+##cluster 1: group 7,10,17,23
+##cluster 2: group 1,3,5,11,19,20
+##cluster 3: group 16
+##cluster 4: group 8,9,14,18,22
+##cluster 5: group 2,6,12
+##clsuter 6: group 4,13,15
+##cluster 7: group 21
+
+sam_str_model_7clus.50s.FIML<-'
+CCBelief~c(a2,a5,a2,a6,a2,a5,a1,a4,a4,a1,a2,a5,a6,a4,a6,a3,a1,a4,a2,a2,a7,a4,a1)*SelfTran+
+          c(b2,b5,b2,b6,b2,b5,b1,b4,b4,b1,b2,b5,b6,b4,b6,b3,b1,b4,b2,b2,b7,b4,b1)*Conser+
+          c(c2,c5,c2,c6,c2,c5,c1,c4,c4,c1,c2,c5,c6,c4,c6,c3,c1,c4,c2,c2,c7,c4,c1)*SelfEnhan
+'
+
+BasicModel.SAM.7clus.50s.FIML<-cfa(model = sam_str_model_7clus.50s.FIML,
+                                    sample.cov = Var_eta,
+                                    sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/BasicModel_SAM_7clus_50s_FIML.txt")
+summary(BasicModel.SAM.7clus.50s.FIML, fit.measures=T, standardized=T)
+sink()
+
+
+##faceted dot plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper) %>%
+  mutate(Human.Values=case_when(
+    rhs=="SelfTran" ~ "Self-Transcendence",
+    rhs=="Conser" ~ "Conservation",
+    rhs=="SelfEnhan" ~ "Self-Enhancement"
+  ))
+
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.7clus.50s, 
+                         by.x = "group", by.y = "group")
+
+FreeSAM_reg_param$country <- fct_reorder(FreeSAM_reg_param$country, 
+                                         FreeSAM_reg_param$ClusMembership)
+
+vline_data <- data.frame(
+  Human.Values = c("Self-Enhancement", "Conservation","Self-Transcendence"), # Facet names
+  xintercept = c(0, -0.3, 0.55)                             # Line positions
+)
+
+ggplot(FreeSAM_reg_param, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  facet_wrap(~Human.Values, scales = "free_x") +
+  #geom_vline(data = vline_data, aes(xintercept = xintercept), color="red", linetype="dashed")+
+  labs(title = "SAM with clustering results - Human Values on Climate Change Belief",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+##3-D scatter plot
+FreeSAMparam<-parameterEstimates(BasicModel.FreeSAM)
+FreeSAM_reg_param<-FreeSAMparam %>%
+  filter(op=="~") %>%
+  select(lhs, rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.7clus.50s, 
+                         by.x = "group", by.y = "group")
+
+SAM_7clus_50s_3D_FIML<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM 7 clusters 50S FIML with clustering results - Human Values on Climate Change Belief",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(SAM_7clus_50s_3D_FIML), "BasicModel1_7clus_3D.html")
 
 
 #####################################################################################
@@ -5033,7 +5447,7 @@ MediationModel.Selection.PM.MarkSup2<-ModelSelection(dat=ESS8,
                                                      userStart = NULL,
                                                      s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.PMetric.Fit1.MarkerSup2),
                                                      max_it = 10000L,
-                                                     nstarts = 1000L,
+                                                     nstarts = 300L,
                                                      printing = FALSE,
                                                      partition = "hard",
                                                      endogenous_cov = TRUE,
@@ -5044,6 +5458,14 @@ MediationModel.Selection.PM.MarkSup2<-ModelSelection(dat=ESS8,
                                                      missing="FIML")
 View(MediationModel.Selection.PM.MarkSup2$Overview)
 
+
+hull_indices <- chull(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL)
+
+plot(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL, 
+     pch=16, col="blue", main="CHull Plot", xlab="nrpar", ylab="LL")
+lines(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], 
+      MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], col="red", lwd=2)
+points(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], pch=16, col="red")
 
 ##CHull expected value for the 2-clusters solution:
 (-1311938)+(771-763)*(-1311764-(-1311938))/(779-763)
@@ -5369,7 +5791,7 @@ ClusterRes.5clus<-merge(ClusterRes.5clus, countries,
 
 
 #
-##5-cluster solution:
+##6-cluster solution:
 clustering.6clus<-t(apply(Mediation.6clus.PM.MarkSup2$posteriors,1,function(x) as.numeric(x==max(x))))
 clustering.6clus[,2]<-ifelse(clustering.6clus[,2]==1,2,0)
 clustering.6clus[,3]<-ifelse(clustering.6clus[,3]==1,3,0)
@@ -7051,6 +7473,95 @@ sink()
 #####################################################################################
 
 
+
+###----------------------------------------------------------------------------------
+##2 cluster solution:
+
+##take out the world map
+world_map<-map_data("world")
+
+##filter to be a eu map:
+eu_countries <- c(
+  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", 
+  "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", 
+  "Ireland", "Iceland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", 
+  "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia",
+  "Slovakia", "Slovenia", "Switzerland",
+  "Spain", "Sweden", "UK", "Israel",
+  "Turkey", "Lebanon", "Jordan", "Egypt", "Syria",
+  "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Moldova"
+)
+
+eu_map <- world_map %>%
+  filter(region %in% eu_countries)
+
+##add a new column called region to match the country names with the world map data country names
+ClusterRes.2clus<-ClusterRes.2clus %>%
+  mutate(region=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czech Republic",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "UK",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ "Lithuania",
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  )) %>%
+  select(ClusMembership, region)
+
+##merge the data:
+map_with_2clusters <- eu_map %>%
+  left_join(ClusterRes.2clus, by = "region")
+
+##lay out on the map:
+ggplot(map_with_2clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "Cluster"
+  ) +
+  theme_minimal()
+
+##mapping with translation of CCBelief into CCPolSupport:
+map_with_6clusters <- map_with_6clusters %>%
+  mutate(CCBelief_Into_CCPolSupport=case_when(
+    ClusMembership == 1 ~ "weakest",
+    ClusMembership == 2 ~ "medium-weak",
+    ClusMembership == 3 ~ "medium-weak",
+    ClusMembership == 4 ~ "strongest",
+    ClusMembership == 5 ~ "medium-strong",
+    ClusMembership == 6 ~ "medium-weak"
+  ))
+
+map_with_6clusters$CCBelief_Into_CCPolSupport<-factor(map_with_6clusters$CCBelief_Into_CCPolSupport,
+                                                      levels = c("weakest","medium-weak","medium-strong","strongest"))
+
+
+ggplot(map_with_6clusters, aes(long, lat, group = group, fill = CCBelief_Into_CCPolSupport)) +
+  geom_polygon(color = "white") +
+  labs(
+    title = "Clustering Results on the Map",
+    fill = "CCBelief into CCPolSupport"
+  ) +
+  theme_minimal()
+
+
+
 ###----------------------------------------------------------------------------------
 ##6 cluster solution:
 
@@ -7158,6 +7669,158 @@ ggplot(map_with_6clusters, aes(long, lat, group = group, fill = factor(Character
     fill = "characteristics"
   ) +
   theme_minimal()
+
+
+
+##########################################################################################################
+#################### Possible explanations of the clusters ##############################################
+##########################################################################################################
+
+###---------------------------------------------------------------------------------------
+##2-clusters
+##start with GDP per capita:
+#
+##read the data in:
+GDPperCapita<-read.csv("GDP per Capita.csv", skip = 4)
+#
+##select data from 2014, 2015, 2016, 2017:
+GDPperCapita<-GDPperCapita[,c("Country.Name","X2014","X2015","X2016","X2017")]
+#
+##filter the data for the countries we have:
+GDPperCapita<-GDPperCapita %>%
+  filter(Country.Name=="Austria" | Country.Name=="Belgium" | Country.Name=="Switzerland" | 
+           Country.Name=="Czechia" | Country.Name=="Germany" | Country.Name=="Estonia" | Country.Name=="Spain" | 
+           Country.Name=="Finland" | Country.Name=="France" | Country.Name=="United Kingdom" | Country.Name=="Hungary" | 
+           Country.Name=="Ireland" | Country.Name=="Israel" | Country.Name=="Iceland" | Country.Name=="Italy" | 
+           Country.Name=="Lithuania" | Country.Name=="Netherlands" | Country.Name=="Norway" | Country.Name=="Poland" | 
+           Country.Name=="Portugal" | Country.Name=="Russian Federation" | Country.Name=="Sweden" | Country.Name=="Slovenia" )
+
+
+##rename the data from the clustering data frame:
+ClusterRes.2clus<-ClusterRes.2clus %>%
+  mutate(Country.Name=case_when(
+    country=="AT" ~ "Austria",
+    country=="BE" ~ "Belgium",
+    country=="CH" ~ "Switzerland",
+    country=="CZ" ~ "Czechia",
+    country=="DE" ~ "Germany",
+    country=="EE" ~ "Estonia",
+    country=="ES" ~ "Spain",
+    country=="FI" ~ "Finland",
+    country=="FR" ~ "France",
+    country=="GB" ~ "United Kingdom",
+    country=="HU" ~ "Hungary",
+    country=="IE" ~ "Ireland",
+    country=="IL" ~ "Israel",
+    country=="IS" ~ "Iceland",
+    country=="IT" ~ "Italy",
+    country=="LT" ~ "Lithuania",
+    country=="NL" ~ "Netherlands",
+    country=="NO" ~ "Norway",
+    country=="PL" ~ "Poland",
+    country=="PT" ~ "Portugal",
+    country=="RU" ~ "Russian Federation",
+    country=="SE" ~ "Sweden",
+    country=="SI" ~ "Slovenia"
+  ))
+
+##merge the 2 data frame:
+GDPPerCapita_2clusters<-merge(ClusterRes.2clus, GDPperCapita,
+                              by.x = "Country.Name",
+                              by.y="Country.Name")
+
+##make a new column about the characteritics of the CCBelief translating into CCPolSupport
+GDPPerCapita_2clusters<-GDPPerCapita_2clusters %>%
+  mutate(Characteristics=case_when(
+    ClusMembership == 1 ~ "strong",
+    ClusMembership == 2 ~ "weak"
+  ))
+
+GDPPerCapita_2clusters$Characteristics<-factor(GDPPerCapita_2clusters$Characteristics,
+                                                          levels = c("strong",
+                                                                     "weak"))
+
+ggplot(GDPPerCapita_2clusters, aes(x=Characteristics, y=X2016, fill=Characteristics))+
+  geom_boxplot()+
+  xlab("characteristics")+ylab("GDP per Capita of 2016")+
+  labs(title = "GDP per Capita for clustering results")+
+  theme_bw()
+
+
+
+###---------------------------------------------------------------------------------------
+##6-clusters
+##start with GDP per capita:
+#
+##read the data in:
+GDPperCapita<-read.csv("GDP per Capita.csv", skip = 4)
+#
+##select data from 2014, 2015, 2016, 2017:
+GDPperCapita<-GDPperCapita[,c("Country.Name","X2014","X2015","X2016","X2017")]
+#
+##filter the data for the countries we have:
+GDPperCapita<-GDPperCapita %>%
+  filter(Country.Name=="Austria" | Country.Name=="Belgium" | Country.Name=="Switzerland" | 
+           Country.Name=="Czechia" | Country.Name=="Germany" | Country.Name=="Estonia" | Country.Name=="Spain" | 
+           Country.Name=="Finland" | Country.Name=="France" | Country.Name=="United Kingdom" | Country.Name=="Hungary" | 
+           Country.Name=="Ireland" | Country.Name=="Israel" | Country.Name=="Iceland" | Country.Name=="Italy" | 
+           Country.Name=="Lithuania" | Country.Name=="Netherlands" | Country.Name=="Norway" | Country.Name=="Poland" | 
+           Country.Name=="Portugal" | Country.Name=="Russian Federation" | Country.Name=="Sweden" | Country.Name=="Slovenia" )
+
+
+##rename the data from the clustering data frame:
+ClusterRes.6clus<-ClusterRes.6clus %>%
+  mutate(Country.Name=case_when(
+    country=="AT" ~ "Austria",
+    country=="BE" ~ "Belgium",
+    country=="CH" ~ "Switzerland",
+    country=="CZ" ~ "Czechia",
+    country=="DE" ~ "Germany",
+    country=="EE" ~ "Estonia",
+    country=="ES" ~ "Spain",
+    country=="FI" ~ "Finland",
+    country=="FR" ~ "France",
+    country=="GB" ~ "United Kingdom",
+    country=="HU" ~ "Hungary",
+    country=="IE" ~ "Ireland",
+    country=="IL" ~ "Israel",
+    country=="IS" ~ "Iceland",
+    country=="IT" ~ "Italy",
+    country=="LT" ~ "Lithuania",
+    country=="NL" ~ "Netherlands",
+    country=="NO" ~ "Norway",
+    country=="PL" ~ "Poland",
+    country=="PT" ~ "Portugal",
+    country=="RU" ~ "Russian Federation",
+    country=="SE" ~ "Sweden",
+    country=="SI" ~ "Slovenia"
+  ))
+
+##merge the 2 data frame:
+GDPPerCapita_6clusters<-merge(ClusterRes.6clus, GDPperCapita,
+                              by.x = "Country.Name",
+                              by.y="Country.Name")
+
+##make a new column about the characteritics of the CCBelief translating into CCPolSupport
+GDPPerCapita_6clusters<-GDPPerCapita_6clusters %>%
+  mutate(CCBelief_Into_CCPolSupport=case_when(
+    ClusMembership == 1 ~ "weakest",
+    ClusMembership == 2 ~ "medium-weak",
+    ClusMembership == 3 ~ "medium-weak",
+    ClusMembership == 4 ~ "strongest",
+    ClusMembership == 5 ~ "medium-strong",
+    ClusMembership == 6 ~ "medium-weak"
+  ))
+
+GDPPerCapita_6clusters$CCBelief_Into_CCPolSupport<-factor(GDPPerCapita_6clusters$CCBelief_Into_CCPolSupport,
+                                                          levels = c("weakest","medium-weak",
+                                                                     "medium-strong","strongest"))
+
+ggplot(GDPPerCapita_6clusters, aes(x=CCBelief_Into_CCPolSupport, y=X2016, fill=CCBelief_Into_CCPolSupport))+
+  geom_boxplot()+
+  xlab("effect of CCBelief on CCPolSupport")+ylab("GDP per Capita of 2016")+
+  labs(title = "GDP per Capita for clustering results")+
+  theme_bw()
 
 
 ###################################################################################################################
@@ -7824,6 +8487,14 @@ ggplot(MediationModel.Selection.PM.MarkSup2$Overview, aes(x=Clusters, y=BIC_G_fa
   labs(title = "BIC_G Factor")+xlab("Number of Clusters")+ylab("BIC_G")+
   theme_minimal()
 
+hull_indices <- chull(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL)
+
+plot(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL, 
+     pch=16, col="blue", main="CHull Plot", xlab="nrpar", ylab="LL")
+lines(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], 
+      MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], col="red", lwd=2)
+points(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], pch=16, col="red")
+
 
 
 ##Mediation model from 1-6 clusters run one by one to compare with the previous results with Hungary
@@ -8487,6 +9158,117 @@ ggplot(map_with_5clusters, aes(long, lat, group = group, fill = factor(Character
     fill = "characteristics"
   ) +
   theme_minimal()
+
+
+####-----------------------------------------------------------------------------------
+##compare the residual variance of the MMGSEM (5 clusters) with the constrained 5-cluster SAM
+
+#cluster membership:
+round(Mediation.5clus.NoHU$posteriors, digits = 15)
+
+##focus on cluster 1:
+#group 2: BE
+Mediation.5clus.NoHU$param$psi_gks[2,1][[1]][4:5,4:5]
+#group 3: CH
+Mediation.5clus.NoHU$param$psi_gks[3,1][[1]][4:5,4:5]
+#group 5: DE
+Mediation.5clus.NoHU$param$psi_gks[5,1][[1]][4:5,4:5]
+#group 8: FI
+Mediation.5clus.NoHU$param$psi_gks[8,1][[1]][4:5,4:5]
+#group 9: FR
+Mediation.5clus.NoHU$param$psi_gks[9,1][[1]][4:5,4:5]
+#group 10: GB
+Mediation.5clus.NoHU$param$psi_gks[10,1][[1]][4:5,4:5]
+#group 13: IS
+Mediation.5clus.NoHU$param$psi_gks[13,1][[1]][4:5,4:5]
+#group 16: NL
+Mediation.5clus.NoHU$param$psi_gks[16,1][[1]][4:5,4:5]
+#group 17: NO
+Mediation.5clus.NoHU$param$psi_gks[17,1][[1]][4:5,4:5]
+#group 19: PT
+Mediation.5clus.NoHU$param$psi_gks[19,1][[1]][4:5,4:5]
+#group 21: SE
+Mediation.5clus.NoHU$param$psi_gks[21,1][[1]][4:5,4:5]
+
+
+##focus on cluster 2:
+#group 15: LT
+Mediation.5clus.NoHU$param$psi_gks[15,2][[1]][4:5,4:5]
+
+##focus on cluster 3:
+#group 12: IL
+Mediation.5clus.NoHU$param$psi_gks[12,3][[1]][4:5,4:5]
+
+##focus on cluster 4:
+#group 1: AT
+Mediation.5clus.NoHU$param$psi_gks[1,4][[1]][4:5,4:5]
+#group 4: CZ
+Mediation.5clus.NoHU$param$psi_gks[4,4][[1]][4:5,4:5]
+#group 7: ES
+Mediation.5clus.NoHU$param$psi_gks[7,4][[1]][4:5,4:5]
+#group 14: IT
+Mediation.5clus.NoHU$param$psi_gks[14,4][[1]][4:5,4:5]
+
+##focus on cluster 5:
+#group 6: EE
+Mediation.5clus.NoHU$param$psi_gks[6,5][[1]][4:5,4:5]
+#group 11: IE
+Mediation.5clus.NoHU$param$psi_gks[11,5][[1]][4:5,4:5]
+#group 18: PL
+Mediation.5clus.NoHU$param$psi_gks[18,5][[1]][4:5,4:5]
+#group 20: RU
+Mediation.5clus.NoHU$param$psi_gks[20,5][[1]][4:5,4:5]
+#group 22: SI
+Mediation.5clus.NoHU$param$psi_gks[22,5][[1]][4:5,4:5]
+
+####-----------------------------------------------------------------------------------
+##make it cluster-specific
+Compare.MMGSEM.2Clus<-MMGSEM(dat=ESS8_noHU,
+                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.PMetric.M1.MarkerSup2),
+                             S2 = Str_model,
+                             group = "country",
+                             nclus=2,
+                             seed = 100,
+                             userStart = NULL,
+                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.PMetric.Fit1.MarkerSup2),
+                             max_it = 10000L,
+                             nstarts = 300L,
+                             printing = T,
+                             partition = "hard",
+                             endogenous_cov = TRUE,
+                             endo_group_specific = F,
+                             sam_method = "local",
+                             meanstr = FALSE,
+                             rescaling = F,
+                             missing="FIML")
+round(Compare.MMGSEM.2Clus$posteriors, digits = 10)
+
+#
+##2 clusters:
+## cluster 1: group 1,3,5,6,7,8,9,10,12,13,15,16,17,18,21,22
+## cluster 2: group 2,4,11,14,19,20
+
+Compare_SAM_2clus<-'
+CCBelief~c(a1,a2,a1,a2,a1,a1,a1,a1,a1,a1,a2,a1,a1,a2,a1,a1,a1,a1,a2,a2,a1,a1)*SelfTran+
+          c(b1,b2,b1,b2,b1,b1,b1,b1,b1,b1,b2,b1,b1,b2,b1,b1,b1,b1,b2,b2,b1,b1)*Conser+
+          c(c1,c2,c1,c2,c1,c1,c1,c1,c1,c1,c2,c1,c1,c2,c1,c1,c1,c1,c2,c2,c1,c1)*SelfEnhan
+
+CCPolicySupport~c(d1,d2,d1,d2,d1,d1,d1,d1,d1,d1,d2,d1,d1,d2,d1,d1,d1,d1,d2,d2,d1,d1)*CCBelief+
+                c(e1,e2,e1,e2,e1,e1,e1,e1,e1,e1,e2,e1,e1,e2,e1,e1,e1,e1,e2,e2,e1,e1)*SelfTran+
+                c(f1,f2,f1,f2,f1,f1,f1,f1,f1,f1,f2,f1,f1,f2,f1,f1,f1,f1,f2,f2,f1,f1)*Conser+
+                c(g1,g2,g1,g2,g1,g1,g1,g1,g1,g1,g2,g1,g1,g2,g1,g1,g1,g1,g2,g2,g1,g1)*SelfEnhan
+                
+CCBelief~~c(h1,h2,h1,h2,h1,h1,h1,h1,h1,h1,h2,h1,h1,h2,h1,h1,h1,h1,h2,h2,h1,h1)*CCBelief
+CCPolicySupport~~c(i1,i2,i1,i2,i1,i1,i1,i1,i1,i1,i2,i1,i1,i2,i1,i1,i1,i1,i2,i2,i1,i1)*CCPolicySupport
+'
+
+Compare.SAM.2clus<-cfa(model = Compare_SAM_2clus,
+                              sample.cov = Var_eta,
+                              sample.nobs = lavInspect(fake, "nobs"))
+
+sink("./Sink Output/ESS8/tes_residualVar_SAM.txt")
+summary(Compare.SAM.2clus, fit.measures=T, standardized=T)
+sink()
 
 
 
