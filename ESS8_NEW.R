@@ -13,8 +13,8 @@ library(mmgsem)
 #library(usethis)
 #library(gitcreds)
 #gitcreds_set()
-Sys.setenv(GITHUB_PAT = "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")
-devtools::install_github("AndresFPA/mmgsem")
+#Sys.setenv(GITHUB_PAT = "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")
+#devtools::install_github("AndresFPA/mmgsem")
 
 ###################################################################################
 ####################### Data Management ###########################################
@@ -2061,6 +2061,10 @@ BasicModel.5clus.150S<-MMGSEM(dat=ESS8_lw,
                               rescaling = F)
 
 #
+Str_model<-'
+CCBelief~SelfTran+Conser+SelfEnhan
+'
+
 ##Based on the new model selection with FIML, we go with 5 clusters
 ##50 starts - FIML
 BasicModel.5clus.50S.FIML<-MMGSEM(dat=ESS8,
@@ -2830,7 +2834,7 @@ htmlwidgets::saveWidget(as_widget(SAM_5clus_150S_3D), "SAM_5clus_150S_3D.html")
 
 ##
 ##-------------------------------------------------------------------------------------------------------
-##5-cluster with 150 random starts - FIML: 
+##5-cluster with 50 random starts - FIML: 
 ##cluster 1: group 1,3,5,11,19,20
 ##cluster 2: group 7,8,9,10,14,17,18,22
 ##cluster 3: group 16
@@ -2929,7 +2933,10 @@ SAM_cluster135_3D<-plot_ly(FreeSAM_reg_param_135, x= ~SelfTran, y= ~Conser, z= ~
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
-##3-D for only cluster 1, 3, 5
+htmlwidgets::saveWidget(as_widget(SAM_cluster135_3D), "BasicModel1_5clus_Cluster135.html")
+
+
+##3-D for only cluster 2,3,4
 FreeSAM_reg_param_234<-FreeSAM_reg_param %>%
   filter(ClusMembership %in% c(2,3,4))
 
@@ -2946,6 +2953,7 @@ SAM_cluster234_3D<-plot_ly(FreeSAM_reg_param_234, x= ~SelfTran, y= ~Conser, z= ~
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
+htmlwidgets::saveWidget(as_widget(SAM_cluster234_3D), "BasicModel1_5clus_Cluster234.html")
 
 
 ##
@@ -3580,7 +3588,7 @@ eu_map <- world_map %>%
   filter(region %in% eu_countries)
 
 ##add a new column called region to match the country names with the world map data country names
-ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
+ClusterRes.5clus.50s<-ClusterRes.5clus.50s %>%
   mutate(region=case_when(
     country == "AT" ~ "Austria",
     country == "BE" ~ "Belgium",
@@ -3610,11 +3618,18 @@ ClusterRes.5clus.150s<-ClusterRes.5clus.150s %>%
 
 ##merge the data:
 map_with_5clusters <- eu_map %>%
-  left_join(ClusterRes.5clus.150s, by = "region")
+  left_join(ClusterRes.5clus.50s, by = "region")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854")
 
 ##full results: lay out on the map:
 ggplot(map_with_5clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors) + 
   labs(
     title = "5-clusters Results on the Map",
     fill = "Cluster"
