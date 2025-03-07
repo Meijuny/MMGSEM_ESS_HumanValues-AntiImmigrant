@@ -13,7 +13,6 @@ library(mmgsem)
 #library(usethis)
 #library(gitcreds)
 #gitcreds_set()
-#Sys.setenv(GITHUB_PAT = "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")
 #devtools::install_github("AndresFPA/mmgsem")
 
 ###################################################################################
