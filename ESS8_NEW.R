@@ -33,8 +33,11 @@ ESS8<-ESS8 %>%
         wrclmch, ##worries about climate change
         cflsenr, ccrdprs, ##personal efficacy regarding climate change
         inctxff, sbsrnen, banhhap, ##opposition for climate change policy
-        lrscale, gndr, agea, eduyrs ##demographic
+        lrscale, gndr, agea, eduyrs, ##demographic
+        hincfel, ##income insecurity
+        trstprl, trstplt,trstprt ##political trust
         )
+
 ##Data cleaning:
 ##rename the variable cntry to country
 ESS8<-ESS8 %>% rename(country=cntry)
@@ -110,6 +113,18 @@ ESS8<-ESS8 %>%
                          ),
                        age=ifelse(agea==999, NA, agea),
                        eduyrs=ifelse(eduyrs>30, NA, eduyrs))
+
+##Income insecurity:
+ESS8$IncomeInsecure<-ifelse(ESS8$hincfel %in% c(7,8,9),NA, ESS8$hincfel)
+
+##Political Trust:
+ESS8$trstprl<-ifelse(ESS8$trstprl %in% c(77,88,99),NA, ESS8$trstprl)
+ESS8$trstplt<-ifelse(ESS8$trstplt %in% c(77,88,99),NA, ESS8$trstplt)
+ESS8$trstprt<-ifelse(ESS8$trstprt %in% c(77,88,99),NA, ESS8$trstprt)
+#
+#compute the mean scale
+ESS8<-ESS8 %>%
+  mutate(PoliticalTrust=(trstprl+trstplt+trstprt)/3)
 
 
 #####################################################################################
@@ -2090,6 +2105,7 @@ save(BasicModel.5clus.50S.FIML, file="./Sink Output/ESS8/AndresObject2.RData")
 SE.BasicModel.5clus<-se(BasicModel.5clus.150S.FIML)
 
 ##50 starts - FIML
+#6 clusters
 BasicModel.6clus.50S.FIML<-MMGSEM(dat=ESS8,
                                   S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
                                   S2 = Str_model,
@@ -2263,6 +2279,7 @@ countries<-data.frame(group=c(1:23),
 ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
                              by.x = "group", by.y = "group")
 
+
 ##50 starts - FIML
 #6-cluster solution - 50 random starts - FIML
 clustering.6clus.50s.FIML<-t(apply(BasicModel.6clus.50S.FIML$posteriors[,1:6],1,function(x) as.numeric(x==max(x))))
@@ -2380,7 +2397,7 @@ BasicModel.FreeSAM<-cfa(model = FREEsam_str_model,
                     sample.cov = Var_eta,
                     sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/BasicModel_FreeSAM.txt")
+sink("./Sink Output/report1/BasicModel1_FreeSAM.txt")
 summary(BasicModel.FreeSAM, fit.measures=T, standardized=T)
 sink()
 
@@ -3566,7 +3583,7 @@ ggplot(map_with_4clusters, aes(long, lat, group = group, fill = factor(ClusMembe
 
 
 ###----------------------------------------------------------------------------------
-##5 cluster solution - 150S - FIML:
+##5 cluster solution - 50S - FIML:
 
 ##take out the world map
 world_map<-map_data("world")
@@ -3630,7 +3647,7 @@ ggplot(map_with_5clusters, aes(long, lat, group = group, fill = factor(ClusMembe
   geom_polygon(color = "white") +
   scale_fill_manual(values = cluster_colors) + 
   labs(
-    title = "5-clusters Results on the Map",
+    #title = "5-clusters Results on the Map",
     fill = "Cluster"
   ) +
   theme_minimal()
@@ -3638,58 +3655,190 @@ ggplot(map_with_5clusters, aes(long, lat, group = group, fill = factor(ClusMembe
 ##make a map focusing on the dimension of self-enhancement
 map_with_5clusters_se<-map_with_5clusters %>%
   mutate(SE_char=case_when(
-    ClusMembership == 1 | ClusMembership==5 ~ "SE_0-negative",
-    ClusMembership == 2 | ClusMembership==4 ~ "SE_0-positive",
-    ClusMembership == 3 ~ "LT: SE very negative"
+    ClusMembership == 1 | ClusMembership==5 ~ "negative",
+    ClusMembership == 2 | ClusMembership==4 ~ "positive",
+    ClusMembership == 3 ~ "very negative"
   ))
 
 #SE results: lay out on the map:
+cluster_colors <- c("negative" = "#66C2A5",  # Soft Blue
+                    "positive" = "#FC8D62",  # Warm Coral
+                    "very negative" = "#8DA0CB")
+
 ggplot(map_with_5clusters_se, aes(long, lat, group = group, fill = factor(SE_char))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors) + 
   labs(
-    title = "Self-enhancement dimension",
-    fill = "SE Characteristics"
+    title = "Self-enhancement Dimension",
+    fill = "SE effect"
   ) +
   theme_minimal()
 
 
-##make a map separating cluster 2 and 4 that are both SE 0-positive
-map_with_5clusters_PositiveSE<-map_with_5clusters %>%
-  mutate(ST_con=case_when(
-    ClusMembership == 4 ~ "weak ST_Con",
-    ClusMembership == 2 ~ "strong ST_con"
-  ))
-
-#SE 0-postive results to separate into cluster 2 and 4: lay out on the map:
-ggplot(map_with_5clusters_PositiveSE, aes(long, lat, group = group, fill = factor(ST_con))) +
-  geom_polygon(color = "white") +
-  labs(
-    title = "Self-Transcendence and Conservation dimension",
-    fill = "SelfTran & Conser"
-  ) +
-  theme_minimal()
-
-
-##make a map separating cluster 1,3,5 that are both SE 0-negative
+##make a map separating cluster 1,3,5 that are both SE 0-negative and very negative
 map_with_5clusters_NegativeSE<-map_with_5clusters %>%
   mutate(ST_con=case_when(
-    ClusMembership == 1 ~ "weaker SelfTran",
-    ClusMembership == 5 ~ "stronger SelfTran",
-    ClusMembership == 3 ~ "LT: strongest ST_Con"
+    ClusMembership == 1 ~ "weak",
+    ClusMembership == 5 ~ "strong",
+    ClusMembership == 3 ~ "very strong"
   ))
 
-#SE 0-postive results to separate into cluster 2 and 4: lay out on the map:
+#SE 0-negative results to separate into cluster 1,3,5: lay out on the map:
+cluster_colors <- c("weak" = "#66C2A5", 
+                    "very strong" = "#8DA0CB", 
+                    "strong" = "#A6D854")
+
 ggplot(map_with_5clusters_NegativeSE, aes(long, lat, group = group, fill = factor(ST_con))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors) + 
   labs(
-    title = "Self-Transcendence and Conservation dimension",
-    fill = "SelfTran & Conser"
+    title = "Among the clusters with negative self-enhancement effect",
+    fill = "effect of ST & Con"
   ) +
   theme_minimal()
+
+
+##make a map separating cluster 2,4 that are both SE 0-negative and very negative
+map_with_5clusters_PositiveSE<-map_with_5clusters %>%
+  mutate(ST_con=case_when(
+    ClusMembership == 4 ~ "weak",
+    ClusMembership == 2 ~ "strong"
+  ))
+
+#SE 0-positive results to separate into cluster 2,4: lay out on the map:
+cluster_colors <- c("strong" = "#FC8D62",  # Warm Coral
+                    "weak" = "#E78AC3")
+
+ggplot(map_with_5clusters_PositiveSE, aes(long, lat, group = group, fill = factor(ST_con))) +
+  geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors) + 
+  labs(
+    title = "Among the clusters with positive self-enhancement effect",
+    fill = "effect of ST & Con"
+  ) +
+  theme_minimal()
+
+
 
 
 #####################################################################################
-############## Basic Model - Policy Support: MMGSEM  ####################
+############## Basic Model 1 - explanation with contextual variables  #################
+#####################################################################################
+
+
+##Income insecurity
+IncomeInsecure_CountryMean<-ESS8 %>%
+  group_by(country) %>%
+  summarise(IncomeInsecureLevel=mean(IncomeInsecure, na.rm=T))
+
+IncomeInsecure_Cluster<-merge(ClusterRes.5clus.50s, IncomeInsecure_CountryMean,
+                              by.x = "country",
+                              by.y = "country")
+
+boxplot(IncomeInsecure_Cluster$IncomeInsecureLevel~IncomeInsecure_Cluster$ClusMembership)
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854")
+
+ggplot(IncomeInsecure_Cluster, aes(x=factor(ClusMembership), y=IncomeInsecureLevel, fill=factor(ClusMembership)))+
+  geom_boxplot()+
+  scale_fill_manual(values = cluster_colors) + 
+  xlab("Cluster") + ylab("Level of Income Insecurity") + 
+  labs(fill="cluster") + 
+  theme_bw()
+
+##GDP growth
+#
+#read the data in:
+GDPgrowth<-read.csv("./GDP per capita growth.csv", skip = 4, header = T)
+#
+#select 2016 data:
+GDPgrowth<-GDPgrowth %>% select(Country.Name, X2016)
+#
+##rename the data from the clustering data frame:
+ClusterRes.5clus.50s<-ClusterRes.5clus.50s %>%
+  mutate(Country.Name=case_when(
+    country=="AT" ~ "Austria",
+    country=="BE" ~ "Belgium",
+    country=="CH" ~ "Switzerland",
+    country=="CZ" ~ "Czechia",
+    country=="DE" ~ "Germany",
+    country=="EE" ~ "Estonia",
+    country=="ES" ~ "Spain",
+    country=="FI" ~ "Finland",
+    country=="FR" ~ "France",
+    country=="GB" ~ "United Kingdom",
+    country=="HU" ~ "Hungary",
+    country=="IE" ~ "Ireland",
+    country=="IL" ~ "Israel",
+    country=="IS" ~ "Iceland",
+    country=="IT" ~ "Italy",
+    country=="LT" ~ "Lithuania",
+    country=="NL" ~ "Netherlands",
+    country=="NO" ~ "Norway",
+    country=="PL" ~ "Poland",
+    country=="PT" ~ "Portugal",
+    country=="RU" ~ "Russian Federation",
+    country=="SE" ~ "Sweden",
+    country=="SI" ~ "Slovenia"
+  ))
+#
+GDPgrowth_cluster<-merge(ClusterRes.5clus.50s, GDPgrowth, 
+                   by.x = "Country.Name", by.y = "Country.Name")
+#
+boxplot(GDPgrowth_cluster$X2016~ GDPgrowth_cluster$ClusMembership)
+
+
+
+
+#GDP per capita
+#
+GDP<-read.csv("./GDP per capita.csv", skip = 4, header = T)
+#
+#select 2016 data:
+GDP<-GDP %>% select(Country.Name, X2016)
+#
+##rename the data from the clustering data frame:
+ClusterRes.5clus.50s<-ClusterRes.5clus.50s %>%
+  mutate(Country.Name=case_when(
+    country=="AT" ~ "Austria",
+    country=="BE" ~ "Belgium",
+    country=="CH" ~ "Switzerland",
+    country=="CZ" ~ "Czechia",
+    country=="DE" ~ "Germany",
+    country=="EE" ~ "Estonia",
+    country=="ES" ~ "Spain",
+    country=="FI" ~ "Finland",
+    country=="FR" ~ "France",
+    country=="GB" ~ "United Kingdom",
+    country=="HU" ~ "Hungary",
+    country=="IE" ~ "Ireland",
+    country=="IL" ~ "Israel",
+    country=="IS" ~ "Iceland",
+    country=="IT" ~ "Italy",
+    country=="LT" ~ "Lithuania",
+    country=="NL" ~ "Netherlands",
+    country=="NO" ~ "Norway",
+    country=="PL" ~ "Poland",
+    country=="PT" ~ "Portugal",
+    country=="RU" ~ "Russian Federation",
+    country=="SE" ~ "Sweden",
+    country=="SI" ~ "Slovenia"
+  ))
+#
+GDP_cluster<-merge(ClusterRes.5clus.50s, GDP, 
+                         by.x = "Country.Name", by.y = "Country.Name")
+#
+boxplot(GDP_cluster$X2016~ GDP_cluster$ClusMembership)
+
+
+
+
+#####################################################################################
+############## Basic Model 2 - Policy Support: MMGSEM  ################################
 #####################################################################################
 
 ##First, take all the necessary measurement models and change to marker variable approach:
@@ -3831,7 +3980,7 @@ BasicModel.PMetricCCPolSup.marker2.Selection<-ModelSelection(dat=ESS8,
                                                              userStart = NULL,
                                                              s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
                                                              max_it = 10000L,
-                                                             nstarts = 150L,
+                                                             nstarts = 50L,
                                                              printing = FALSE,
                                                              partition = "hard",
                                                              endogenous_cov = TRUE,
@@ -3843,6 +3992,21 @@ BasicModel.PMetricCCPolSup.marker2.Selection<-ModelSelection(dat=ESS8,
 
 View(BasicModel.PMetricCCPolSup.marker2.Selection$Overview)
 
+#CHull plot
+hull_indices <- chull(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$nrpar, BasicModel.PMetricCCPolSup.marker2.Selection$Overview$LL)
+
+
+plot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$nrpar, BasicModel.PMetricCCPolSup.marker2.Selection$Overview$LL, 
+     pch=4, col="black", main="CHull plot",xlab="Number of free parameters", ylab="Loglikelihood")
+lines(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$nrpar[hull_indices], 
+      BasicModel.PMetricCCPolSup.marker2.Selection$Overview$LL[hull_indices], col="black", lwd=1)
+points(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$nrpar[hull_indices], BasicModel.PMetricCCPolSup.marker2.Selection$Overview$LL[hull_indices], pch=16, col="red")
+
+##BIC_G:
+plot(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$Clusters, BasicModel.PMetricCCPolSup.marker2.Selection$Overview$BIC_G, 
+     pch=4, col="black", main="BIC_G plot",xlab="Number of clusters", ylab="BIC_G")
+lines(BasicModel.PMetricCCPolSup.marker2.Selection$Overview$Clusters, 
+      BasicModel.PMetricCCPolSup.marker2.Selection$Overview$BIC_G, col="black", lwd=1)
 
 
 ##expected CHull for cluster 4:
@@ -3939,7 +4103,7 @@ CCPolicySupport.3clus.150S.MarkSup2.FM<-MMGSEM(dat=ESS8,
 round(CCPolicySupport.3clus.150S.MarkSup2.FM$posteriors, digits = 5)
 #
 ##Option c: partial metric invariance CCPolSupport with support2 as marker
-CCPolicySupport.3clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
+CCPolicySupport.3clus.50S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                             S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.PMetric.M1.MarkerSup2),
                                             S2 = Str_model,
                                             group = "country",
@@ -3948,7 +4112,7 @@ CCPolicySupport.3clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                             userStart = NULL,
                                             s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
                                             max_it = 10000L,
-                                            nstarts = 150L,
+                                            nstarts = 50L,
                                             printing = FALSE,
                                             partition = "hard",
                                             endogenous_cov = TRUE,
@@ -3957,11 +4121,16 @@ CCPolicySupport.3clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                             meanstr = FALSE,
                                             rescaling = F,
                                             missing="FIML")
-round(CCPolicySupport.3clus.150S.MarkSup2.PM$posteriors, digits = 5)
+round(CCPolicySupport.3clus.50S.MarkSup2.PM$posteriors[,1:3], digits = 5)
 
 ###------------------------------------------------------------------------------------------------------------------------------
+##Structural model
+Str_model<-'
+CCPolicySupport~SelfTran+Conser+SelfEnhan
+'
+
 ##Extra clustering run for 4-cluster solution with CCPolSupport Partial metric invariance
-CCPolicySupport.4clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
+CCPolicySupport.4clus.50S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                                S1 = list(NoOpen.HV.Metric.M2.Marker, CCPolSupport.PMetric.M1.MarkerSup2),
                                                S2 = Str_model,
                                                group = "country",
@@ -3970,7 +4139,7 @@ CCPolicySupport.4clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                                userStart = NULL,
                                                s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
                                                max_it = 10000L,
-                                               nstarts = 150L,
+                                               nstarts = 50L,
                                                printing = FALSE,
                                                partition = "hard",
                                                endogenous_cov = TRUE,
@@ -3979,7 +4148,7 @@ CCPolicySupport.4clus.150S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                                meanstr = FALSE,
                                                rescaling = F,
                                                missing="FIML")
-round(CCPolicySupport.4clus.150S.MarkSup2.PM$posteriors, digits = 5)
+round(CCPolicySupport.4clus.50S.MarkSup2.PM$posteriors[,1:4], digits = 5)
 
 
 ###------------------------------------------------------------------------------------------------------------------------------
@@ -4039,7 +4208,7 @@ ClusterRes.3clus<-merge(ClusterRes.3clus, countries,
 #
 ##Extra Option: CCPolSupport Partial metric with support 2 as marker
 ##4 clusters solution
-clustering.4clus<-t(apply(CCPolicySupport.4clus.150S.MarkSup2.PM$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.4clus<-t(apply(CCPolicySupport.4clus.50S.MarkSup2.PM$posteriors[,1:4],1,function(x) as.numeric(x==max(x))))
 clustering.4clus[,2]<-ifelse(clustering.4clus[,2]==1,2,0)
 clustering.4clus[,3]<-ifelse(clustering.4clus[,3]==1,3,0)
 clustering.4clus[,4]<-ifelse(clustering.4clus[,4]==1,4,0)
@@ -4617,7 +4786,7 @@ CCPolSupport.FreeSAM.PM.Mark2<-cfa(model = CCPolSupport_FREEsam_str_model,
                                    sample.cov = Var_eta,
                                    sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/CCPolSupport_PM_markSup2_FreeSAM.txt")
+sink("./Sink Output/report1/BasicModel2_FreeSAM.txt")
 summary(CCPolSupport.FreeSAM.PM.Mark2, fit.measures=T, standardized=T)
 sink()
 
@@ -4695,15 +4864,21 @@ FreeSAM_reg_param<-FreeSAMparam %>%
 FreeSAM_reg_param<-merge(FreeSAM_reg_param, ClusterRes.4clus, 
                          by.x = "group", by.y = "group")
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3")
+
 CCPolSupport_4clus_3D_PMMark2<-plot_ly(FreeSAM_reg_param, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                       colors = cluster_colors,
                                        type = "scatter3d", mode="markers+text") %>%
-  layout(title="SAM with clustering results - Human Values on Climate Change Policy Support",
+  layout(title="SAM 4 clusters - Human Values on Climate Change Policy Support",
          scene=list(xaxis=list(title="Self-Transcendence"),
                     yaxis=list(title="Conservation"),
                     zaxis=list(title="Self-Enhancement")))
 
 
-htmlwidgets::saveWidget(as_widget(CCPolSupport_4clus_3D_PMMark2), "CCPolSupport_4clus_3D_PMMark2.html")
+htmlwidgets::saveWidget(as_widget(CCPolSupport_4clus_3D_PMMark2), "BasicModel2_4clus_3D.html")
 
 
 #####################################################################################
@@ -5106,9 +5281,9 @@ lavTestLRT(RegSEM.BasicModel.HV.CCPolSupport.6clus.150s, RegSEM.BasicModel.HV.CC
 
 
 
-#####################################################################################
-##################### CC Policy Support: Mapping   ##################################
-#####################################################################################
+#####################################################################################################
+##################### Basic Model 2 - CC Policy Support: Mapping   ##################################
+#####################################################################################################
 
 
 ###----------------------------------------------------------------------------------
@@ -5294,14 +5469,91 @@ ClusterRes.4clus<-ClusterRes.4clus %>%
 map_with_4clusters.PM <- eu_map %>%
   left_join(ClusterRes.4clus, by = "region")
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3")
+
 ##lay out on the map:
 ggplot(map_with_4clusters.PM, aes(long, lat, group = group, fill = factor(ClusMembership))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors)+
   labs(
-    title = "Clustering Results on the Map",
     fill = "Cluster"
   ) +
   theme_minimal()
+
+##Map it also with the characteristics:
+ClusterRes.4clus<-ClusterRes.4clus %>%
+  mutate(ClusterChar=case_when(
+    ClusMembership == 1 ~ "Cluster 1: strongest ST and Con",
+    ClusMembership == 2 ~ "Cluster 2: weakest ST and Con",
+    ClusMembership == 3 ~ "Cluster 3: strong ST and Con",
+    ClusMembership == 4 ~ "Cluster 4: weak ST and Con"
+  ))
+
+ClusterRes.4clus$ClusterChar<-factor(ClusterRes.4clus$ClusterChar, 
+                                     levels = c("Cluster 1: strongest ST and Con", 
+                                                "Cluster 2: weakest ST and Con",
+                                                "Cluster 3: strong ST and Con",
+                                                "Cluster 4: weak ST and Con"))
+
+
+map_with_4clusters.PM <- eu_map %>%
+  left_join(ClusterRes.4clus, by = "region")
+
+cluster_colors <- c("Cluster 1: strongest ST and Con" = "#66C2A5",  # Soft Blue
+                    "Cluster 2: weakest ST and Con" = "#FC8D62",  # Warm Coral
+                    "Cluster 3: strong ST and Con" = "#8DA0CB",  # Mint Green
+                    "Cluster 4: weak ST and Con" = "#E78AC3")
+
+##lay out on the map:
+ggplot(map_with_4clusters.PM, aes(long, lat, group = group, fill = ClusterChar)) +
+  geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors)+
+  labs(
+    fill = "Cluster & Characteristics"
+  ) +
+  theme_minimal()
+
+
+#####################################################################################################
+############## Basic Model 2 - Potential Explanation with country level indicators   ################
+#####################################################################################################
+
+###-------------------------------------------------------------------------------------
+##Start with income insecurity
+
+#first compute the mean of income insecurity of each country
+
+IncomeInsecure_CountryMean<-ESS8 %>%
+  group_by(country) %>%
+  summarise(IncomeInsecureMean=mean(IncomeInsecure, na.rm=T))
+
+IncomeInsecure_Clus<-merge(ClusterRes.4clus, IncomeInsecure_CountryMean,
+                           by.x = "country", by.y = "country")
+
+boxplot(IncomeInsecureMean~factor(ClusMembership), data = IncomeInsecure_Clus)
+
+###-------------------------------------------------------------------------------------
+##Then with political trust
+
+#first compute the mean of political trust of each country
+
+PoliticalTrust_CountryMean<-ESS8 %>%
+  group_by(country) %>%
+  summarise(PoliticalTrustMean=mean(PoliticalTrust, na.rm=T))
+
+PoliticalTrust_Clus<-merge(ClusterRes.4clus, PoliticalTrust_CountryMean,
+                           by.x = "country", by.y = "country")
+
+boxplot(PoliticalTrustMean~factor(ClusMembership), data = PoliticalTrust_Clus)
+
+
+##--------------------------------------------------------------------------------------
+##Environmental Policy Stringency Index: data from
+#https://data-explorer.oecd.org/vis?fs[0]=Topic%2C1%7CEnvironment%20and%20climate%20change%23ENV%23%7CEnvironmental%20policy%23ENV_POL%23&pg=0&fc=Topic&bp=true&snb=7&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_EPS%40DF_EPS&df[ag]=OECD.ECO.MAD&df[vs]=1.0&dq=.A..EPS&lom=LASTNPERIODS&lo=5&to[TIME_PERIOD]=false&vw=tb
+
 
 
 #####################################################################################
@@ -7950,7 +8202,7 @@ ggplot(BasicModel.Selection$Overview, aes(x=Clusters, y=BIC_G_fac))+
 
 
 ##go for 5 clusters:
-BasicModel.5clus.150S.NoHU<-MMGSEM(dat=ESS8_noHU,
+BasicModel.5clus.50S.NoHU<-MMGSEM(dat=ESS8_noHU,
                                    S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker),
                                    S2 = Str_model,
                                    group = "country",
@@ -7959,7 +8211,7 @@ BasicModel.5clus.150S.NoHU<-MMGSEM(dat=ESS8_noHU,
                                    userStart = NULL,
                                    s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker),
                                    max_it = 10000L,
-                                   nstarts = 150L,
+                                   nstarts = 50L,
                                    printing = FALSE,
                                    partition = "hard",
                                    endogenous_cov = TRUE,
@@ -7968,22 +8220,22 @@ BasicModel.5clus.150S.NoHU<-MMGSEM(dat=ESS8_noHU,
                                    meanstr = FALSE,
                                    rescaling = F,
                                    missing="FIML")
-round(BasicModel.5clus.150S.NoHU$posteriors, digits = 5)
+round(BasicModel.5clus.50S.NoHU$posteriors[,1:5], digits = 5)
 
 #cluster membership --> 5 clusters
-clustering.5clus.150s.NoHU<-t(apply(BasicModel.5clus.150S.NoHU$posteriors,1,function(x) as.numeric(x==max(x))))
-clustering.5clus.150s.NoHU[,2]<-ifelse(clustering.5clus.150s.NoHU[,2]==1,2,0)
-clustering.5clus.150s.NoHU[,3]<-ifelse(clustering.5clus.150s.NoHU[,3]==1,3,0)
-clustering.5clus.150s.NoHU[,4]<-ifelse(clustering.5clus.150s.NoHU[,4]==1,4,0)
-clustering.5clus.150s.NoHU[,5]<-ifelse(clustering.5clus.150s.NoHU[,5]==1,5,0)
+clustering.5clus.50s.NoHU<-t(apply(BasicModel.5clus.50S.NoHU$posteriors[,1:5],1,function(x) as.numeric(x==max(x))))
+clustering.5clus.50s.NoHU[,2]<-ifelse(clustering.5clus.50s.NoHU[,2]==1,2,0)
+clustering.5clus.50s.NoHU[,3]<-ifelse(clustering.5clus.50s.NoHU[,3]==1,3,0)
+clustering.5clus.50s.NoHU[,4]<-ifelse(clustering.5clus.50s.NoHU[,4]==1,4,0)
+clustering.5clus.50s.NoHU[,5]<-ifelse(clustering.5clus.50s.NoHU[,5]==1,5,0)
 
-ClusMembership.5clus.150s<-apply(clustering.5clus.150s.NoHU,1,function(x) sum(x))
-ClusterRes.5clus.150s<-data.frame(group=c(1:22),
-                                  ClusMembership=ClusMembership.5clus.150s)
+ClusMembership.5clus.50s<-apply(clustering.5clus.50s.NoHU,1,function(x) sum(x))
+ClusterRes.5clus.50s<-data.frame(group=c(1:22),
+                                  ClusMembership=ClusMembership.5clus.50s)
 countries<-data.frame(group=c(1:22),
                       country=lavInspect(NoOpen.HV.Metric.Fit2.Marker, "group.label"))
 
-ClusterRes.5clus.150s<-merge(ClusterRes.5clus.150s, countries,
+ClusterRes.5clus.50s<-merge(ClusterRes.5clus.50s, countries,
                              by.x = "group", by.y = "group")
 
 
