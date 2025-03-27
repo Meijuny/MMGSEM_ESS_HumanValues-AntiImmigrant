@@ -5533,7 +5533,19 @@ IncomeInsecure_CountryMean<-ESS8 %>%
 IncomeInsecure_Clus<-merge(ClusterRes.4clus, IncomeInsecure_CountryMean,
                            by.x = "country", by.y = "country")
 
-boxplot(IncomeInsecureMean~factor(ClusMembership), data = IncomeInsecure_Clus)
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3")
+
+ggplot(data = IncomeInsecure_Clus, aes(x=factor(ClusMembership), y=IncomeInsecureMean, fill=factor(ClusMembership)))+
+  geom_boxplot()+
+  scale_fill_manual(values = cluster_colors)+
+  xlab("cluster")+ylab("Level of Income Insecurity")+
+  labs(fill="cluster",title="Level of Income Insecurity by Clusters")+
+  theme_bw()
+
+
 
 ###-------------------------------------------------------------------------------------
 ##Then with political trust
@@ -5554,6 +5566,55 @@ boxplot(PoliticalTrustMean~factor(ClusMembership), data = PoliticalTrust_Clus)
 ##Environmental Policy Stringency Index: data from
 #https://data-explorer.oecd.org/vis?fs[0]=Topic%2C1%7CEnvironment%20and%20climate%20change%23ENV%23%7CEnvironmental%20policy%23ENV_POL%23&pg=0&fc=Topic&bp=true&snb=7&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_EPS%40DF_EPS&df[ag]=OECD.ECO.MAD&df[vs]=1.0&dq=.A..EPS&lom=LASTNPERIODS&lo=5&to[TIME_PERIOD]=false&vw=tb
 
+#read data in:
+EPSI<-read.csv("./Environmental Policy Stringency Index.csv")
+
+##filter:
+ESPI_2016<-EPSI %>%
+  filter(TIME_PERIOD == 2016) %>%
+  dplyr::select(Reference.area, OBS_VALUE)
+
+##Change country names:
+ClusterRes.4clus <- ClusterRes.4clus %>%
+  mutate(Reference.area=case_when(
+    country == "AT" ~ "Austria",
+    country == "BE" ~ "Belgium",
+    country == "CH" ~ "Switzerland",
+    country == "CZ" ~ "Czechia",
+    country == "DE" ~ "Germany",
+    country == "EE" ~ "Estonia",
+    country == "ES" ~ "Spain",
+    country == "FI" ~ "Finland",
+    country == "FR" ~ "France",
+    country == "GB" ~ "United Kingdom",
+    country == "HU" ~ "Hungary",
+    country == "IE" ~ "Ireland",
+    country == "IL" ~ "Israel",
+    country == "IS" ~ "Iceland",
+    country == "IT" ~ "Italy",
+    country == "LT" ~ NA,
+    country == "NL" ~ "Netherlands",
+    country == "NO" ~ "Norway",
+    country == "PL" ~ "Poland",
+    country == "PT" ~ "Portugal",
+    country == "RU" ~ "Russia",
+    country == "SE" ~ "Sweden",
+    country == "SI" ~ "Slovenia"
+  ))
+
+ESPI_clus<-merge(ClusterRes.4clus, ESPI_2016,
+                by.x = "Reference.area", by.y = "Reference.area")
+
+cluster_colors <- c("2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Mint Green
+                    "4" = "#E78AC3")
+
+ggplot(data = ESPI_clus, aes(x=factor(ClusMembership), y=OBS_VALUE, fill=factor(ClusMembership)))+
+  geom_boxplot()+
+  xlab("Cluster")+ylab("Environmental Policy Stringency Index")+
+  scale_fill_manual(values = cluster_colors)+
+  labs(fill="cluster", title = "Environmental Policy Stringency Index by Clusters")+
+  theme_bw()
 
 
 #####################################################################################
