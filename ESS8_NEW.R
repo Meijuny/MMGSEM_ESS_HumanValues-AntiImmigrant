@@ -6129,7 +6129,7 @@ ClusterRes.5clus<-merge(ClusterRes.5clus, countries,
 
 #
 ##6-cluster solution:
-clustering.6clus<-t(apply(Mediation.6clus.PM.MarkSup2$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.6clus<-t(apply(Mediation.6clus.PM.MarkSup2$posteriors[,1:6],1,function(x) as.numeric(x==max(x))))
 clustering.6clus[,2]<-ifelse(clustering.6clus[,2]==1,2,0)
 clustering.6clus[,3]<-ifelse(clustering.6clus[,3]==1,3,0)
 clustering.6clus[,4]<-ifelse(clustering.6clus[,4]==1,4,0)
@@ -7769,11 +7769,53 @@ CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.6clus,
 CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
                                        CCBelief_regPar$ClusMembership)
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
 ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
   geom_vline(xintercept = c(0.20,0.465,0.86), color="red", linetype="dashed")+
-  labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
+  scale_color_manual(values = cluster_colors)+
+  labs(title = "Effect of CCBelief on CC Policy Support",
+       color="cluster")+
+  xlab("regression coefficients")+ylab("country")+
+  theme_bw()
+
+#
+#
+##Facet plot for only the effect of CCBelief on CCPolicySupport
+##and only cluster 3,5,6
+CCBelief_regPar<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.6clus, 
+                       by.x = "group", by.y = "group")
+
+CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
+                                       CCBelief_regPar$ClusMembership)
+
+CCBelief_regPar_3clus<-CCBelief_regPar %>%
+  filter(ClusMembership==3 | ClusMembership == 5 | ClusMembership == 6)
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
+ggplot(CCBelief_regPar_3clus, aes(x=est, y=country, color=factor(ClusMembership)))+
+  geom_point(size=3) +
+  geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
+  geom_vline(xintercept = 0.465, color="red", linetype="dashed")+
+  scale_color_manual(values = cluster_colors)+
+  labs(title = "Effect of CCBelief on CC Policy Support",
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
   theme_bw()
@@ -7819,6 +7861,100 @@ ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
   xlab("regression coefficients")+ylab("country")+
   theme_bw()
 
+#
+#
+#
+##3-D scatter plot
+##for direct effects:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
+HVDirect.param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+HVDirect.param.wide<-HVDirect.param %>%
+  select(rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+HVDirect.param.wide<-merge(HVDirect.param.wide, ClusterRes.6clus, 
+                           by.x = "group", by.y = "group")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
+Mediation_6clus_direct_3D<-plot_ly(HVDirect.param.wide, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                   colors = cluster_colors,
+                                   type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Mediation Model - 6 clusters - direct effect",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(Mediation_6clus_direct_3D), "Mediation_6clus_direct_3D.html")
+
+
+
+##for indirect effects:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
+HVIndirect.par<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.par$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.par$lhs))
+
+HVIndirect.par<-HVIndirect.par %>%
+  select(lhs, group, est, ci.lower, ci.upper)
+
+HVIndirect.par$human_values <- gsub("_g.*", "", HVIndirect.par$lhs)
+
+HVIndirect.par.wide<-HVIndirect.par %>%
+  select(human_values, group, est) %>%
+  pivot_wider(names_from = human_values, values_from = est)
+
+HVIndirect.par.wide<-merge(HVIndirect.par.wide, ClusterRes.6clus, 
+                           by.x = "group", by.y = "group")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
+Mediation_6clus_indirect_3D<-plot_ly(HVIndirect.par.wide, x= ~STindirect, y= ~ConIndirect, z= ~SEindirect, text= ~country, color = ~factor(ClusMembership),
+                                     colors = cluster_colors,
+                                     type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Mediation Model - 6 clusters - indirect effect",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(Mediation_6clus_indirect_3D), "Mediation_6clus_indirect_3D.html")
+
+#indirect for only cluster 3,5,6
+HVIndirect.par.wide.clus36<-HVIndirect.par.wide %>%
+  filter(ClusMembership == 3 | ClusMembership == 6)
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
+Mediation_6clus_Clus36_indirect_3D<-plot_ly(HVIndirect.par.wide.clus36, x= ~STindirect, y= ~ConIndirect, z= ~SEindirect, text= ~country, color = ~factor(ClusMembership),
+                                     colors = cluster_colors,
+                                     type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Mediation Model - Cluster 3 and 6 - indirect effect",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(Mediation_6clus_Clus36_indirect_3D), "Mediation_6clus_indirect_clus36_3D.html")
 
 
 ##############################################################################################################
@@ -8019,9 +8155,17 @@ ClusterRes.6clus<-ClusterRes.6clus %>%
 map_with_6clusters <- eu_map %>%
   left_join(ClusterRes.6clus, by = "region")
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
 ##lay out on the map:
 ggplot(map_with_6clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors)+
   labs(
     title = "Clustering Results on the Map",
     fill = "Cluster"
@@ -8242,10 +8386,18 @@ GDPPerCapita_6clusters$CCBelief_Into_CCPolSupport<-factor(GDPPerCapita_6clusters
                                                           levels = c("weakest","medium-weak",
                                                                      "medium-strong","strongest"))
 
-ggplot(GDPPerCapita_6clusters, aes(x=CCBelief_Into_CCPolSupport, y=X2016, fill=CCBelief_Into_CCPolSupport))+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62",  # Warm Coral
+                    "3" = "#8DA0CB",  # Cool Purple
+                    "4" = "#E78AC3",  # Soft Pink
+                    "5" = "#A6D854",  # Fresh Green
+                    "6" = "#FFD92F")  # Warm Yellow
+
+ggplot(GDPPerCapita_6clusters, aes(x=factor(ClusMembership), y=X2016, fill=factor(ClusMembership)))+
   geom_boxplot()+
-  xlab("effect of CCBelief on CCPolSupport")+ylab("GDP per Capita of 2016")+
-  labs(title = "GDP per Capita for clustering results")+
+  scale_fill_manual(values = cluster_colors)+
+  xlab("cluster")+ylab("GDP per Capita of 2016")+
+  labs(title = "GDP per Capita by Clusters", fill="cluster")+
   theme_bw()
 
 
@@ -8926,6 +9078,12 @@ points(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], Mediat
 ##Mediation model from 1-6 clusters run one by one to compare with the previous results with Hungary
 
 #
+Str_model<-'
+CCBelief~SelfTran+Conser+SelfEnhan
+
+CCPolicySupport~CCBelief+SelfTran+Conser+SelfEnhan
+'
+
 ##2 clusters:
 Mediation.2clus.NoHU<-MMGSEM(dat=ESS8_noHU,
                                     S1 = list(NoOpen.HV.Metric.M2.Marker, CCBelief.Metric.M1.Marker,CCPolSupport.PMetric.M1.MarkerSup2),
@@ -8945,7 +9103,7 @@ Mediation.2clus.NoHU<-MMGSEM(dat=ESS8_noHU,
                                     meanstr = FALSE,
                                     rescaling = F,
                                     missing="FIML")
-round(Mediation.2clus.NoHU$posteriors, digits = 10)
+round(Mediation.2clus.NoHU$posteriors[,1:2], digits = 5)
 ##converged
 
 #
@@ -9015,7 +9173,7 @@ Mediation.5clus.NoHU<-MMGSEM(dat=ESS8_noHU,
                              meanstr = FALSE,
                              rescaling = F,
                              missing="FIML")
-round(Mediation.5clus.NoHU$posteriors, digits = 15)
+round(Mediation.5clus.NoHU$posteriors[,1:5], digits = 10)
 ##converged
 
 
@@ -9023,7 +9181,7 @@ round(Mediation.5clus.NoHU$posteriors, digits = 15)
 ##clustering membership:
 #
 ##2-clusters:
-clustering.2clus<-t(apply(Mediation.2clus.NoHU$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.2clus<-t(apply(Mediation.2clus.NoHU$posteriors[,1:2],1,function(x) as.numeric(x==max(x))))
 clustering.2clus[,2]<-ifelse(clustering.2clus[,2]==1,2,0)
 ClusMembership.2clus<-apply(clustering.2clus,1,function(x) sum(x))
 ClusterRes.2clus<-data.frame(group=c(1:22),
@@ -9068,7 +9226,7 @@ ClusterRes.4clus<-merge(ClusterRes.4clus, countries,
 
 #
 ##5-clusters:
-clustering.5clus<-t(apply(Mediation.5clus.NoHU$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.5clus<-t(apply(Mediation.5clus.NoHU$posteriors[,1:5],1,function(x) as.numeric(x==max(x))))
 clustering.5clus[,2]<-ifelse(clustering.5clus[,2]==1,2,0)
 clustering.5clus[,3]<-ifelse(clustering.5clus[,3]==1,3,0)
 clustering.5clus[,4]<-ifelse(clustering.5clus[,4]==1,4,0)
