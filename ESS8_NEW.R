@@ -13,7 +13,7 @@ library(mmgsem)
 #library(usethis)
 #library(gitcreds)
 #gitcreds_set()
-#devtools::install_github("AndresFPA/mmgsem")
+#devtools::install_github("AndresFPA/mmgsem", force = T)
 
 ###################################################################################
 ####################### Data Management ###########################################
@@ -4150,6 +4150,8 @@ CCPolicySupport.4clus.50S.MarkSup2.PM<-MMGSEM(dat=ESS8,
                                                missing="FIML")
 round(CCPolicySupport.4clus.50S.MarkSup2.PM$posteriors[,1:4], digits = 5)
 
+SE_4clus<-se(CCPolicySupport.4clus.50S.MarkSup2.PM)
+
 
 ###------------------------------------------------------------------------------------------------------------------------------
 ##Clustering membership
@@ -5786,13 +5788,21 @@ MediationModel.Selection.PM.MarkSup2<-ModelSelection(dat=ESS8,
 View(MediationModel.Selection.PM.MarkSup2$Overview)
 
 
+#CHull plot
 hull_indices <- chull(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL)
 
+
 plot(MediationModel.Selection.PM.MarkSup2$Overview$nrpar, MediationModel.Selection.PM.MarkSup2$Overview$LL, 
-     pch=16, col="blue", main="CHull Plot", xlab="nrpar", ylab="LL")
+     pch=4, col="black", main="CHull plot",xlab="Number of free parameters", ylab="Loglikelihood")
 lines(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], 
-      MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], col="red", lwd=2)
+      MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], col="black", lwd=1)
 points(MediationModel.Selection.PM.MarkSup2$Overview$nrpar[hull_indices], MediationModel.Selection.PM.MarkSup2$Overview$LL[hull_indices], pch=16, col="red")
+
+##BIC_G:
+plot(MediationModel.Selection.PM.MarkSup2$Overview$Clusters, MediationModel.Selection.PM.MarkSup2$Overview$BIC_G, 
+     pch=4, col="black", main="BIC_G plot",xlab="Number of clusters", ylab="BIC_G")
+lines(MediationModel.Selection.PM.MarkSup2$Overview$Clusters, 
+      MediationModel.Selection.PM.MarkSup2$Overview$BIC_G, col="black", lwd=1)
 
 ##CHull expected value for the 2-clusters solution:
 (-1311938)+(771-763)*(-1311764-(-1311938))/(779-763)
@@ -5918,8 +5928,8 @@ Mediation.2clus.PM.MarkSup2<-MMGSEM(dat=ESS8,
                                     userStart = NULL,
                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.PMetric.Fit1.MarkerSup2),
                                     max_it = 10000L,
-                                    nstarts = 150L,
-                                    printing = T,
+                                    nstarts = 300L,
+                                    printing = F,
                                     partition = "hard",
                                     endogenous_cov = TRUE,
                                     endo_group_specific = TRUE,
@@ -5927,7 +5937,7 @@ Mediation.2clus.PM.MarkSup2<-MMGSEM(dat=ESS8,
                                     meanstr = FALSE,
                                     rescaling = F,
                                     missing="FIML")
-round(Mediation.2clus.PM.MarkSup2$posteriors, digits = 5)
+round(Mediation.2clus.PM.MarkSup2$posteriors[,1:2], digits = 10)
 ##converged
 
 ##3 clusters:
@@ -6008,8 +6018,8 @@ Mediation.6clus.PM.MarkSup2<-MMGSEM(dat=ESS8,
                                     userStart = NULL,
                                     s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCBelief.Metric.Fit1.Marker,CCPolSupport.PMetric.Fit1.MarkerSup2),
                                     max_it = 10000L,
-                                    nstarts = 150L,
-                                    printing = T,
+                                    nstarts = 300L,
+                                    printing = F,
                                     partition = "hard",
                                     endogenous_cov = TRUE,
                                     endo_group_specific = TRUE,
@@ -6017,7 +6027,7 @@ Mediation.6clus.PM.MarkSup2<-MMGSEM(dat=ESS8,
                                     meanstr = FALSE,
                                     rescaling = F,
                                     missing="FIML")
-round(Mediation.6clus.PM.MarkSup2$posteriors, digits = 10)
+round(Mediation.6clus.PM.MarkSup2$posteriors[,1:6], digits = 10)
 ##converge
 
 
@@ -6060,7 +6070,7 @@ ClusterRes.5clus<-merge(ClusterRes.5clus, countries,
 ##Option C: Partial Metric CCPolSupport with support2 as marker
 #
 ##2-cluster solution:
-clustering.2clus<-t(apply(Mediation.2clus.PM.MarkSup2$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.2clus<-t(apply(Mediation.2clus.PM.MarkSup2$posteriors[,1:2],1,function(x) as.numeric(x==max(x))))
 clustering.2clus[,2]<-ifelse(clustering.2clus[,2]==1,2,0)
 ClusMembership.2clus<-apply(clustering.2clus,1,function(x) sum(x))
 ClusterRes.2clus<-data.frame(group=c(1:23),
@@ -7021,7 +7031,7 @@ Mediation.FreeSAM.PM.MarkSup2<-cfa(model = Mediation_FREEsam_str_model_PM_MarkSu
                                    sample.cov = Var_eta,
                                    sample.nobs = lavInspect(fake, "nobs"))
 
-sink("./Sink Output/ESS8/Mediation_FreeSAM_PM_MarkSup2.txt")
+sink("./Sink Output/report1/Mediation_FreeSAM.txt")
 summary(Mediation.FreeSAM.PM.MarkSup2, fit.measures=T, standardized=T)
 sink()
 
@@ -7107,6 +7117,8 @@ ggplot(HVDirect.param, aes(x=est, y=country, color=factor(ClusMembership)))+
 #
 #
 ##Facet plot for only the effect of CCBelief on CCPolicySupport
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
 CCBelief_regPar<-FreeSAMparam %>%
   filter(op=="~" & lhs=="CCPolicySupport" & rhs=="CCBelief") %>%
   select(lhs, rhs, group, est, ci.lower, ci.upper)
@@ -7117,11 +7129,15 @@ CCBelief_regPar<-merge(CCBelief_regPar, ClusterRes.2clus,
 CCBelief_regPar$country <- fct_reorder(CCBelief_regPar$country, 
                                        CCBelief_regPar$ClusMembership)
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
 ggplot(CCBelief_regPar, aes(x=est, y=country, color=factor(ClusMembership)))+
   geom_point(size=3) +
   geom_errorbarh(aes(xmin = ci.lower, xmax = ci.upper), height=0.2)+
   geom_vline(xintercept = 0.375, color="red", linetype="dashed")+
-  labs(title = "SAM with clustering results - effect of CCBelief on CC Policy Support",
+  scale_color_manual(values = cluster_colors)+
+  labs(title = "Effect of Climate Change Belief on Climate Policy Support",
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
   theme_bw()
@@ -7166,6 +7182,73 @@ ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
        color="cluster")+
   xlab("regression coefficients")+ylab("country")+
   theme_bw()
+
+#
+#
+#
+##3-D scatter plot
+##for direct effects:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
+HVDirect.param<-FreeSAMparam %>%
+  filter(op=="~" & lhs=="CCPolicySupport" & rhs!="CCBelief") %>%
+  select(lhs, rhs, group, est, ci.lower, ci.upper)
+
+HVDirect.param.wide<-HVDirect.param %>%
+  select(rhs, group, est) %>%
+  pivot_wider(names_from = rhs, values_from = est)
+
+HVDirect.param.wide<-merge(HVDirect.param.wide, ClusterRes.2clus, 
+                           by.x = "group", by.y = "group")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
+Mediation_2clus_direct_3D<-plot_ly(HVDirect.param.wide, x= ~SelfTran, y= ~Conser, z= ~SelfEnhan, text= ~country, color = ~factor(ClusMembership),
+                                     colors = cluster_colors,
+                                     type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Mediation Model - 2 clusters - direct effect",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(Mediation_2clus_direct_3D), "Mediation_2clus_direct_3D.html")
+
+
+
+##for indirect effects:
+FreeSAMparam<-parameterEstimates(Mediation.FreeSAM.PM.MarkSup2)
+
+HVIndirect.par<-FreeSAMparam %>%
+  filter(op==":=")
+
+HVIndirect.par$group <- as.numeric(gsub(".*_g(\\d+).*", "\\1", HVIndirect.par$lhs))
+
+HVIndirect.par<-HVIndirect.par %>%
+  select(lhs, group, est, ci.lower, ci.upper)
+
+HVIndirect.par$human_values <- gsub("_g.*", "", HVIndirect.par$lhs)
+
+HVIndirect.par.wide<-HVIndirect.par %>%
+  select(human_values, group, est) %>%
+  pivot_wider(names_from = human_values, values_from = est)
+
+HVIndirect.par.wide<-merge(HVIndirect.par.wide, ClusterRes.2clus, 
+                      by.x = "group", by.y = "group")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
+Mediation_2clus_indirect_3D<-plot_ly(HVIndirect.par.wide, x= ~STindirect, y= ~ConIndirect, z= ~SEindirect, text= ~country, color = ~factor(ClusMembership),
+                                       colors = cluster_colors,
+                                       type = "scatter3d", mode="markers+text") %>%
+  layout(title="SAM Mediation Model - 2 clusters",
+         scene=list(xaxis=list(title="Self-Transcendence"),
+                    yaxis=list(title="Conservation"),
+                    zaxis=list(title="Self-Enhancement")))
+
+htmlwidgets::saveWidget(as_widget(Mediation_2clus_indirect_3D), "Mediation_2clus_indirect_3D.html")
+
 
 
 
@@ -7606,17 +7689,6 @@ ggplot(HVIndirect.par, aes(x=est, y=country, color=factor(ClusMembership)))+
 ##cluster 6: group 6,12,19,21,23
 
 
-
-##5-cluster: 
-##cluster 1: group 1,4,6,#7, 12,#15, 19,21,23
-##cluster 2: group 16, 20
-##cluster 3: group 11
-##cluster 4: group 13, 14
-##cluster 5: group 2,3,5,8,9,10,17,18,22
-
-
-
-
 sam_mediation_6clus_PM_MarkSup2<-'
 CCBelief~c(a3,a5,a5,a3,a5,a6,a3,a5,a5,a5,a1,a6,a4,a5,a3,a2,a5,a5,a6,a5,a6,a5,a6)*SelfTran+
           c(b3,b5,b5,b3,b5,b6,b3,b5,b5,b5,b1,b6,b4,b5,b3,b2,b5,b5,b6,b5,b6,b5,b6)*Conser+
@@ -7855,9 +7927,13 @@ ClusterRes.2clus<-ClusterRes.2clus %>%
 map_with_2clusters <- eu_map %>%
   left_join(ClusterRes.2clus, by = "region")
 
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
 ##lay out on the map:
 ggplot(map_with_2clusters, aes(long, lat, group = group, fill = factor(ClusMembership))) +
   geom_polygon(color = "white") +
+  scale_fill_manual(values = cluster_colors)+
   labs(
     title = "Clustering Results on the Map",
     fill = "Cluster"
@@ -8067,12 +8143,35 @@ GDPPerCapita_2clusters$Characteristics<-factor(GDPPerCapita_2clusters$Characteri
                                                           levels = c("strong",
                                                                      "weak"))
 
-ggplot(GDPPerCapita_2clusters, aes(x=Characteristics, y=X2016, fill=Characteristics))+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
+ggplot(GDPPerCapita_2clusters, aes(x=factor(ClusMembership), y=X2016, fill=factor(ClusMembership)))+
   geom_boxplot()+
-  xlab("characteristics")+ylab("GDP per Capita of 2016")+
-  labs(title = "GDP per Capita for clustering results")+
+  scale_fill_manual(values = cluster_colors)+
+  xlab("cluster")+ylab("GDP per Capita of 2016")+
+  labs(title = "GDP per Capita by Clusters", fill="cluster")+
   theme_bw()
 
+#
+#
+#Income insecurity
+IncomeInsecure_CountryMean<-ESS8 %>%
+  group_by(country) %>%
+  summarise(IncomeInsecureMean=mean(IncomeInsecure, na.rm=T))
+
+IncomeInsecure_Cluster<-merge(ClusterRes.2clus, IncomeInsecure_CountryMean,
+                              by.x = "country", by.y = "country")
+
+cluster_colors <- c("1" = "#66C2A5",  # Soft Blue
+                    "2" = "#FC8D62")
+
+ggplot(IncomeInsecure_Cluster, aes(x=factor(ClusMembership), y=IncomeInsecureMean, fill = factor(ClusMembership)))+
+  geom_boxplot()+
+  scale_fill_manual(values = cluster_colors)+
+  xlab("cluster")+ylab("Level of Income Insecurity")+
+  labs(title = "Level of Income Insecurity by Clusters", fill="cluster")+
+  theme_bw()
 
 
 ###---------------------------------------------------------------------------------------
@@ -8531,7 +8630,7 @@ CCPolicySupport.3clus.NoHU.MarkSup2.PM<-MMGSEM(dat=ESS8_noHU,
                                                userStart = NULL,
                                                s1_fit = list(NoOpen.HV.Metric.Fit2.Marker, CCPolSupport.PMetric.Fit1.MarkerSup2),
                                                max_it = 10000L,
-                                               nstarts = 150L,
+                                               nstarts = 50L,
                                                printing = FALSE,
                                                partition = "hard",
                                                endogenous_cov = TRUE,
@@ -8540,12 +8639,12 @@ CCPolicySupport.3clus.NoHU.MarkSup2.PM<-MMGSEM(dat=ESS8_noHU,
                                                meanstr = FALSE,
                                                rescaling = F,
                                                missing="FIML")
-round(CCPolicySupport.3clus.NoHU.MarkSup2.PM$posteriors, digits = 5)
+round(CCPolicySupport.3clus.NoHU.MarkSup2.PM$posteriors[,1:3], digits = 5)
 
 
 #
 ##clustering membership for 3 clusters solution
-clustering.3clus<-t(apply(CCPolicySupport.3clus.NoHU.MarkSup2.PM$posteriors,1,function(x) as.numeric(x==max(x))))
+clustering.3clus<-t(apply(CCPolicySupport.3clus.NoHU.MarkSup2.PM$posteriors[,1:3],1,function(x) as.numeric(x==max(x))))
 clustering.3clus[,2]<-ifelse(clustering.3clus[,2]==1,2,0)
 clustering.3clus[,3]<-ifelse(clustering.3clus[,3]==1,3,0)
 
